@@ -22,3 +22,13 @@ A more basic explanation:
 =========================
 
 The expected result should be greater accuracy in detection due to the use of character outlines and no surrounding area.
+
+=========================
+
+Short list of ideas for starting points:
+
+- The scripting in Unity allows for some dynamic GUI elements to be provided, therefore rather than creating new camera/lighting elements, it would be easier to adjust 2 constant ones, this will allow the user to see the manipulations more.
+- Guide to adding GUI here: http://docs.unity3d.com/Documentation/Components/GUIScriptingGuide.html
+- Free character models are available from the Unity Assets Store
+
+=========================
