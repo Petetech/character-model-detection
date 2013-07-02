@@ -2,6 +2,9 @@ Character Model Detection
 =========================
 Using the Unity game engine to detect characters in images/screenshots with a list of provided parameters.
 
+Follow the development here:  
+[Project Progress](https://github.com/petetech/character-model-detection.wiki.git) 
+
 =========================
 
 In this project we will be leveraging Unity to do the following things:
