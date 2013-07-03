@@ -9,10 +9,11 @@ public class CharacterScript : MonoBehaviour {
 	float yAngle, yStep;
 	
 	int maxFiles;
-	string path, fileType = "image", filename;
+	string path, fileType , filename;
 	int fileCount = 0;
 	
-	int stageCount = 5;
+	int stageCount = 6;
+	int loopCount = 0;
 	bool setFlag = true;
 	
 	public void Initialise(float y, int f, string l)
@@ -25,6 +26,7 @@ public class CharacterScript : MonoBehaviour {
 			Directory.CreateDirectory(path);
 		
 		stageCount = 0;
+		loopCount = 0;
 	}
 	
 	// Update is called once per frame
@@ -33,19 +35,19 @@ public class CharacterScript : MonoBehaviour {
 		if (stageCount < 6)
 		{
 			// Decide whether this loop is colour or mask
-			if (stageCount % 2 == 0)
+			if (loopCount % 2 == 0)
 			{
 				target.renderer.material.color = Color.white; // colour
 				fileType = "image";
+				
+				transform.Rotate(0, yStep, 0);
+				yAngle += yStep;
 			}
 			else
 			{
 				target.renderer.material.color = Color.black; // mask
 				fileType = "mask";
 			}
-			
-			transform.Rotate(0, yStep, 0);
-			yAngle += yStep;
 			
 			if (yAngle >= 360)
 			{
@@ -84,17 +86,23 @@ public class CharacterScript : MonoBehaviour {
 	
 	void LateUpdate()
 	{
-		filename = ScreenShotName();
-		if (fileCount < maxFiles)
+		if (stageCount < 6)
 		{
-			StartCoroutine(TakeScreenshot());
+			filename = ScreenShotName();
+			
+			loopCount++;
+			
+			if (fileCount < maxFiles)
+			{
+				StartCoroutine(TakeScreenshot());
+			}
 		}
 	}
 	
 	
 	public string ScreenShotName()
 	{
-		if (stageCount % 2 == 0)
+		if (loopCount % 2 == 0)
 			fileCount++;
 		
 		return string.Format(@"{0}\{1}{2}.png", path, fileType, fileCount.ToString());	
