@@ -7,17 +7,20 @@ public class MenuScript : MonoBehaviour {
 	#region Fields
 	
 	List<GameObject> charList = new List<GameObject>();
+	string cListStr;
+	
 	public GameObject current;
 	int charCount = 0;
 	
 	bool MenuActive = true;
 
-	Rect MenuRect = new Rect((Screen.width / 2) -125, 0, 250, 200);
-	Rect ListRect = new Rect((Screen.width / 2) - 125, 200, 250, 150);
+	Rect MenuRect = new Rect(0, 0, 250, 200);
+	Rect ListRect = new Rect(0, Screen.height - 150, 250, 150);
 	
-	float sliderValueY = 15f;
+	float rotateStep = 15f;
 	bool tiltOnOff = false;
-	string fileNoStr = "2000";
+	float tiltStep = 5f;
+	float maxTilt = 10;
 	string fileLoc = @"C:\Images";
 	
 	#endregion Fields
@@ -26,6 +29,14 @@ public class MenuScript : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start() {
+		// Call Load
+		LoadFromResources();
+	}
+	
+	void LoadFromResources()
+	{
+		charList.Clear();
+		cListStr = "";
 		
 		// Load up all current characters/prefabs in resources
 		Object[] prefabs = Resources.LoadAll("Characters", typeof(GameObject));
@@ -33,12 +44,9 @@ public class MenuScript : MonoBehaviour {
 		// Add them to a main list
 		foreach (Object o in prefabs)
 		{
-			charList.Add((GameObject)o);	
+			charList.Add((GameObject)o);
+			cListStr += o.name + "\r\n";
 		}
-		
-		// Set first character
-		current = (GameObject)Instantiate(charList[0]);
-		current.AddComponent("CharacterScript");
 	}
 	
 	// Display the menus
@@ -56,8 +64,8 @@ public class MenuScript : MonoBehaviour {
 		GUILayout.BeginArea (new Rect(20, 30, 210, 160));
 		
 		GUILayout.BeginHorizontal();
-		GUILayout.Label("Rotation Step: " + sliderValueY.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
-		sliderValueY = GUILayout.HorizontalScrollbar(sliderValueY, 5, 1f, 35f);
+		GUILayout.Label("Rotation Step: " + rotateStep.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
+		rotateStep = GUILayout.HorizontalSlider(rotateStep, 1f, 35f);
 		GUILayout.EndHorizontal();
 		
 		GUILayout.BeginHorizontal();
@@ -65,23 +73,34 @@ public class MenuScript : MonoBehaviour {
 		tiltOnOff = GUILayout.Toggle(tiltOnOff, " Add Tilts");
 		GUILayout.EndHorizontal();
 		
-		GUILayout.BeginHorizontal();
-		GUILayout.Label("Maximum Files", GUILayout.Width(120));
-		fileNoStr = GUILayout.TextField(fileNoStr); 
-		GUILayout.EndHorizontal();
+		if (tiltOnOff)
+		{
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("Tilt Step: " + tiltStep.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
+			tiltStep = GUILayout.HorizontalSlider(tiltStep, 1f, 10f);
+			GUILayout.EndHorizontal();
+			
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("Max Tilt: " + maxTilt.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
+			maxTilt = GUILayout.HorizontalSlider(maxTilt, tiltStep, 30f); 
+			GUILayout.EndHorizontal();
+		}
 		
 		GUILayout.BeginHorizontal();
-		GUILayout.Label("File Location", GUILayout.Width(120));
+		GUILayout.Label("Save Location", GUILayout.Width(120));
 		fileLoc = GUILayout.TextField(fileLoc);
 		GUILayout.EndHorizontal();
 		
-		if (GUILayout.Button("Start", GUILayout.Width(80), GUILayout.Height(50)))
+		if (GUILayout.Button("Start", GUILayout.Width(80), GUILayout.Height(25)))
 		{
 			// Close windows
 			MenuActive = false;
 			
+			// Set first character
+			ChangeChar();
+			
 			// Call Start on filecount 0
-			StartNewChar(0);
+			StartChar(0);
 			
 		}
 		
@@ -90,50 +109,61 @@ public class MenuScript : MonoBehaviour {
 	
 	void ListWindow(int ID)
 	{
-		string info = "";
-		
-		foreach (GameObject G in charList)
-		{
-			info += G.name + "\r\n";
-		}
-		
 		Vector2 scrollPosition = Vector2.zero;
 		
 		GUILayout.BeginArea (new Rect(10, 20, 230, 130));
 		
 		scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, GUILayout.Height(80));
-		GUILayout.TextArea(info, GUILayout.Height(80));
+		GUILayout.TextArea(cListStr, GUILayout.Height(80));
 		GUILayout.EndScrollView();
 		
-		if(GUILayout.Button ("Load new", GUILayout.Width(80)))
+		if(GUILayout.Button ("Refresh", GUILayout.Width(80)))
 		{
-			// add function	to load more prefabs here
+			LoadFromResources();
 		}
 		
 		GUILayout.EndArea();
 	}
 	
+	// Overloaded to prevent repeat code and for the first character
+	public void ChangeChar()
+	{
+		Destroy(current);
+		current = (GameObject)Instantiate(charList[charCount]);
+		current.AddComponent("CharacterScript");
+		
+		charCount++;
+	}
+	
+	// For new chars
 	public void ChangeChar(int newFileCount)
 	{
-		if (charCount < charList.Count - 1)
+		if (charCount < charList.Count)
 		{
-			charCount++;
-			Destroy(current);
-			current = (GameObject)Instantiate(charList[charCount]);
-			current.AddComponent("CharacterScript");
-			
-			StartNewChar(newFileCount);
+			ChangeChar();
+	
+			StartChar(newFileCount);
 		}
 		else
 		{
-			Destroy(current);
+			charCount = 0;
 			MenuActive = true;
 		}
+		
 	}
 	
-	void StartNewChar(int fC)
+	public void StartChar(int fC)
 	{
-		current.GetComponent<CharacterScript>().Initialise(sliderValueY, tiltOnOff, System.Convert.ToInt32(fileNoStr), fileLoc, fC);
+		CharacterScript newScript = current.GetComponent<CharacterScript>();
+		
+		if (tiltOnOff)
+		{
+			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, fC);
+		}
+		else
+		{
+			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, fC);
+		}
 	}
 			
 	// Update is called once per frame

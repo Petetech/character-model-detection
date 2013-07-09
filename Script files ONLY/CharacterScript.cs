@@ -7,13 +7,16 @@ public class CharacterScript : MonoBehaviour {
 	#region Fields
 	
 	public Renderer target;
+	public MenuScript script;
 	
+	// Rotate
 	float yAngle, yStep;
+	
+	// Tilt
 	bool tiltFlag;
-	bool nextStage;
+	float xAngle, xStep, maxT;
 	
 	// File / Screenshot variables
-	int maxFiles;
 	string path, fileType = "image", filename;
 	int fileCount = 0;
 	
@@ -27,16 +30,18 @@ public class CharacterScript : MonoBehaviour {
 	
 	void Start()
 	{
+		// Link the MenuScript
+		script = Camera.main.GetComponent<MenuScript>();
+		
 		// Grab the renderer from the object this script is attached to
 		target = gameObject.GetComponentInChildren<Renderer>();
 	}
 	
-	public void Initialise(float y, bool x, int f, string l, int c)
+	// Without Tilt
+	public void Initialise(float y, bool x, string l, int c)
 	{
-		
 		yStep = y;
 		tiltFlag = x;
-		maxFiles = f;
 		path = l;
 		fileCount = c;
 		
@@ -47,75 +52,90 @@ public class CharacterScript : MonoBehaviour {
 		loopCount = 0;
 	}
 	
+	// With Tilt
+	public void Initialise(float y, bool x, float xS, float mT, string l, int c)
+	{
+		xStep = xS;
+		maxT = mT;
+		
+		Initialise(y, x, l, c);
+	}
+	
 	// Update is called once per frame
 	void Update () 
 	{
-		if (stageCount < 3)
+		if (stageCount < 2)
 		{
 			// Decide whether this loop is colour or mask
 			if (loopCount % 2 == 0)
 			{
 				target.material.color = Color.white; // colour
 				fileType = "image";
+				
+				// Rotate on even wait for first screenshot
+				if (loopCount > 1)
+				{
+					transform.Rotate(0, yStep, 0);
+					yAngle += yStep;
+				}
 			}
 			else
 			{
 				target.renderer.material.color = Color.black; // mask
 				fileType = "mask";
-				
-				// Rotate on odd
-				transform.Rotate(0, yStep, 0);
-				yAngle += yStep;
 			}
 			
 			// After one full turn
 			if (yAngle >= 360)
 			{
-				stageCount++;
 				yAngle = 0;
-				
-				// Used to prevent the statements triggering more than once
-				nextStage = true;
-			}
 			
-			// Turn tilt on/off via menu
-			// However this can be adapted to work the same way as the regular rotation
-			if (tiltFlag)
-			{
-				// add tilt
-				if (stageCount == 1 && nextStage)
+				// Turn tilt on/off via menu
+				if (tiltFlag)
 				{
-					transform.eulerAngles = new Vector3(30, 0, 0);
-					nextStage = false;
+					// Check if max has been hit
+					if (xAngle >= maxT || xAngle <= -maxT)
+					{
+						xAngle = 0;
+						transform.eulerAngles = new Vector3(0, 0, 0);
+						stageCount++;
+					}
+					
+					// add tilt
+					if (stageCount == 0)
+					{
+						transform.Rotate(xStep, 0, 0);
+						xAngle += xStep;
+					}
+					
+					// swap to opposite tilt
+					if (stageCount == 1)
+					{
+						transform.Rotate(-xStep, 0, 0);
+						xAngle -= xStep;
+					}
+				}
+				else
+				{
+					// If there are to be no tilts, skip straight to new char/animations
+					stageCount = 2;
 				}
 				
-				// swap to opposite tilt
-				if (stageCount == 2 && nextStage)
-				{
-					transform.eulerAngles = new Vector3(-30, 0, 0);
-					nextStage = false;
-				}
-			}
-			else if (nextStage)
-			{
-				// This is if there are to be no tilts, skip straight to new char
-				stageCount = 3;	
+				// INSERT ANIMATION CHANGE STAGE HERE AS STAGE 2
 			}
 			
-			// INSERT ANIMATION CHANGE STAGE HERE AS STAGE 3
 			
 			// Once all 360s are completed call for next character
-			if (stageCount == 3 && nextStage)
+			if (stageCount == 2)
 			{
-				Camera.main.GetComponent<MenuScript>().ChangeChar(fileCount);
-				nextStage = false;	
+				script.ChangeChar(fileCount);
 			}
 			
 		}
 		
 		// To add animations use something like this 
  
-//	 	if (stageCount == X && nextStage)
+//	 	if (stageCount == X)
 //	 	{
 //	 		CallNewAnimationMethod(aniCount);
 //	 		aniCount++;
@@ -127,17 +147,14 @@ public class CharacterScript : MonoBehaviour {
 	void LateUpdate()
 	{
 		// prevent constant screenshots
-		if (stageCount < 3)
+		if (stageCount < 2)
 		{
 			filename = ScreenShotName();
 			
 			// full 'loop'
 			loopCount++;
 			
-			if (fileCount < maxFiles)
-			{
-				StartCoroutine(TakeScreenshot());
-			}
+			StartCoroutine(TakeScreenshot());
 		}
 	}
 	
