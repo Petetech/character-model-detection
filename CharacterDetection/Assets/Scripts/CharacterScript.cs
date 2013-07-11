@@ -57,7 +57,7 @@ public class CharacterScript : MonoBehaviour {
 	{
 		xStep = xS;
 		maxT = mT;
-		
+
 		Initialise(y, x, l, c);
 	}
 	
@@ -72,12 +72,8 @@ public class CharacterScript : MonoBehaviour {
 				target.material.color = Color.white; // colour
 				fileType = "image";
 				
-				// Rotate on even wait for first screenshot
-				if (loopCount > 1)
-				{
-					transform.Rotate(0, yStep, 0);
-					yAngle += yStep;
-				}
+				// Rotate on even
+				RotateChar();
 			}
 			else
 			{
@@ -93,27 +89,7 @@ public class CharacterScript : MonoBehaviour {
 				// Turn tilt on/off via menu
 				if (tiltFlag)
 				{
-					// Check if max has been hit
-					if (xAngle >= maxT || xAngle <= -maxT)
-					{
-						xAngle = 0;
-						transform.eulerAngles = new Vector3(0, 0, 0);
-						stageCount++;
-					}
-					
-					// add tilt
-					if (stageCount == 0)
-					{
-						transform.Rotate(xStep, 0, 0);
-						xAngle += xStep;
-					}
-					
-					// swap to opposite tilt
-					if (stageCount == 1)
-					{
-						transform.Rotate(-xStep, 0, 0);
-						xAngle -= xStep;
-					}
+					TiltChar();
 				}
 				else
 				{
@@ -122,8 +98,8 @@ public class CharacterScript : MonoBehaviour {
 				}
 				
 				// INSERT ANIMATION CHANGE STAGE HERE AS STAGE 2
+				
 			}
-			
 			
 			// Once all 360s are completed call for next character
 			if (stageCount == 2)
@@ -143,6 +119,42 @@ public class CharacterScript : MonoBehaviour {
 //		}
 
 	}
+	
+	void RotateChar()
+	{
+		// Wait for first 2 loops
+		if (loopCount > 1)
+		{
+			transform.Rotate(0, yStep, 0);
+			yAngle += yStep;
+		}
+	}
+	
+	void TiltChar()
+	{
+		// Check if max has been hit
+		if (xAngle >= maxT || xAngle <= -maxT)
+		{
+			xAngle = 0;
+			transform.eulerAngles = new Vector3(0, 0, 0);
+			stageCount++;
+		}
+		
+		// add tilt
+		if (stageCount == 0)
+		{
+			transform.Rotate(xStep, 0, 0);
+			xAngle += xStep;
+		}
+		
+		// swap to opposite tilt
+		if (stageCount == 1)
+		{
+			transform.Rotate(-xStep, 0, 0);
+			xAngle -= xStep;
+		}	
+	}
+	
 	
 	void LateUpdate()
 	{
