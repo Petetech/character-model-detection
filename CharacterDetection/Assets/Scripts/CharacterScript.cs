@@ -185,6 +185,14 @@ public class CharacterScript : MonoBehaviour {
 		// take shot
 		shot.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
 		
+		
+		//Adds .txt File
+		
+		TextWriter tw = new StreamWriter(filename+".txt");
+		Vector3 objectPos = Camera.main.WorldToScreenPoint(transform.position);
+		tw.WriteLine("x is: {0}, y is : {1}", objectPos.x, objectPos.y);
+		tw.Close();
+		
 		// reset
 		Camera.main.targetTexture = null;
 		RenderTexture.active = null;
