@@ -125,7 +125,7 @@ public class CharacterScript : MonoBehaviour {
 		// Wait for first 2 loops
 		if (loopCount > 1)
 		{
-			transform.Rotate(0, yStep, 0);
+			this.transform.Rotate(0, yStep, 0);
 			yAngle += yStep;
 		}
 	}
@@ -136,21 +136,21 @@ public class CharacterScript : MonoBehaviour {
 		if (xAngle >= maxT || xAngle <= -maxT)
 		{
 			xAngle = 0;
-			transform.eulerAngles = new Vector3(0, 0, 0);
+			this.transform.eulerAngles = new Vector3(0, 0, 0);
 			stageCount++;
 		}
 		
 		// add tilt
 		if (stageCount == 0)
 		{
-			transform.Rotate(xStep, 0, 0);
+			this.transform.Rotate(xStep, 0, 0);
 			xAngle += xStep;
 		}
 		
 		// swap to opposite tilt
 		if (stageCount == 1)
 		{
-			transform.Rotate(-xStep, 0, 0);
+			this.transform.Rotate(-xStep, 0, 0);
 			xAngle -= xStep;
 		}	
 	}
@@ -201,8 +201,8 @@ public class CharacterScript : MonoBehaviour {
 		//Adds .txt File
 		
 		TextWriter tw = new StreamWriter(filename+".txt");
-		Vector3 objectPos = Camera.main.WorldToScreenPoint(transform.position);
-		tw.WriteLine("x is: {0}, y is : {1}", objectPos.x, objectPos.y);
+		Vector3 objectPos = Camera.main.WorldToScreenPoint(this.transform.GetChild(1).position);
+		tw.WriteLine("{2}x is: {0}, y is : {1}", objectPos.x, objectPos.y,this.transform.GetChild(1).name);
 		tw.Close();
 		
 		// reset
