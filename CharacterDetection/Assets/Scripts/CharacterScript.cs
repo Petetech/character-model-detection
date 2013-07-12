@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 
 public class CharacterScript : MonoBehaviour {
@@ -23,6 +24,9 @@ public class CharacterScript : MonoBehaviour {
 	// Stages/loops
 	int stageCount = 4;
 	int loopCount = 0;
+	
+	//Spheres for deletion
+	List<GameObject> spheres = new List<GameObject>();
 
 	#endregion // Fields
 	
@@ -64,6 +68,8 @@ public class CharacterScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update () 
 	{
+		destroySphere();
+		
 		if (stageCount < 2)
 		{
 			// Decide whether this loop is colour or mask
@@ -78,6 +84,7 @@ public class CharacterScript : MonoBehaviour {
 			else
 			{
 				target.renderer.material.color = Color.black; // mask
+				addPoints();
 				fileType = "mask";
 			}
 			
@@ -199,24 +206,103 @@ public class CharacterScript : MonoBehaviour {
 		
 		
 		//Adds .txt File
-		
+		Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
 		TextWriter tw = new StreamWriter(filename+".txt");
-		Vector3 objectPos = Camera.main.WorldToScreenPoint(this.transform.GetChild(1).position);
-		tw.WriteLine("{2}x is: {0}, y is : {1}", objectPos.x, objectPos.y,this.transform.GetChild(1).name);
+		foreach (Transform child in allChildren)
+		{
+			bool check = checkParts(child);
+			if (check == true)
+			{
+				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
+				tw.WriteLine("Name: {0} X: {1} Y:{2}", child.transform.name, objectPos.x, objectPos.y);
+			}
+			else
+			{
+				continue;
+			}
+		}
 		tw.Close();
 		
 		// reset
 		Camera.main.targetTexture = null;
 		RenderTexture.active = null;
 		Destroy(rt);
-		
 		yield return 0;
 		
 		// Create file
 		byte[] bytes = shot.EncodeToPNG();
 		File.WriteAllBytes(filename, bytes);
 		
+		
 	}
 	
 	#endregion Methods
+	
+	
+	//checks to see what parts are on the model and then returns true if they are the correct ones.
+	bool checkParts(Transform t)
+	{
+		List<string> points = new List<string>();
+		points.Add("Hips");
+		points.Add("LeftUpLeg");
+		points.Add("LeftLeg");
+		points.Add("LeftFoot");
+		points.Add("RightUpLeg");
+		points.Add("RightLeg");
+		points.Add("RightFoot");
+		points.Add("LeftShoulder");
+		points.Add("LeftArm");
+		points.Add("LeftForeArm");
+		points.Add("LeftHand");
+		points.Add("Head");
+		points.Add("RightShoulder");
+		points.Add("RightArm");
+		points.Add("RightForeArm");
+		points.Add("RightHand");
+		string temp = t.transform.name;
+
+		if (points.Contains(temp))
+		{
+			return true;
+		}
+			
+		else
+		{
+				return false;
+		}
+		
+	}
+	
+	void addPoints()
+	{
+		Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
+		foreach (Transform child in allChildren)
+		{
+			bool check = checkParts(child);
+				if (check == true)
+				{
+					var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);					
+					sphere.transform.position = child.transform.position;
+					sphere.transform.localScale = new Vector3(0.2F,0.2F,0.2F);
+					sphere.renderer.material.color = Color.green;
+					spheres.Add(sphere);
+				}
+				else
+				{
+					continue;
+				}
+			}
+	}
+	
+	void destroySphere()
+	{
+		foreach (GameObject de in spheres)
+		{
+			Destroy(de);
+		}
+	}
 }
+	
+
+
+
