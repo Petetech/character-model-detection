@@ -1,5 +1,7 @@
 using UnityEngine;
+using UnityEditorInternal;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 
 public class CharacterScript : MonoBehaviour {
@@ -7,6 +9,7 @@ public class CharacterScript : MonoBehaviour {
 	#region Fields
 	
 	public Renderer target;
+	public Animator charAnimator;
 	public MenuScript script;
 	
 	// Rotate
@@ -16,33 +19,34 @@ public class CharacterScript : MonoBehaviour {
 	bool tiltFlag;
 	float xAngle, xStep, maxT;
 	
+	// Animations
+	Object[] animations;
+	float aStep, currTime;
+	int animCount = 0;
+	
 	// File / Screenshot variables
 	string path, fileType = "image", filename;
 	int fileCount = 0;
+	
+	// Spheres for point display
+	bool sphFlag;
+	List<GameObject> spheres = new List<GameObject>();
 	
 	// Stages/loops
 	int stageCount = 4;
 	int loopCount = 0;
 
-	#endregion // Fields
+	#endregion
 	
-	#region Methods
-	
-	void Start()
-	{
-		// Link the MenuScript
-		script = Camera.main.GetComponent<MenuScript>();
-		
-		// Grab the renderer from the object this script is attached to
-		target = gameObject.GetComponentInChildren<Renderer>();
-	}
-	
+	#region Initialise Overloads
 	// Without Tilt
-	public void Initialise(float y, bool x, string l, int c)
+	public void Initialise(float y, bool x, string l, bool s, float a, int c)
 	{
 		yStep = y;
 		tiltFlag = x;
 		path = l;
+		sphFlag = s;
+		aStep = a;
 		fileCount = c;
 		
 		if(!Directory.Exists(path))
@@ -53,18 +57,42 @@ public class CharacterScript : MonoBehaviour {
 	}
 	
 	// With Tilt
-	public void Initialise(float y, bool x, float xS, float mT, string l, int c)
+	public void Initialise(float y, bool x, float xS, float mT, string l, bool s, float a, int c)
 	{
 		xStep = xS;
 		maxT = mT;
+
+		Initialise(y, x, l, s, a, c);
+	}
+	#endregion
+	
+	#region Methods
+	
+	void Start()
+	{
+		// Link the MenuScript
+		script = Camera.main.GetComponent<MenuScript>();
 		
-		Initialise(y, x, l, c);
+		// Grab the renderer from the object this script is attached to
+		target = gameObject.GetComponentInChildren<Renderer>();
+		
+		// Locate the animations
+		animations = Resources.LoadAll("Animations", typeof(AnimationClip));
+		
+		SetAnimator();
 	}
 	
 	// Update is called once per frame
-	void Update () 
+	void Update ()
 	{
-		if (stageCount < 2)
+		// Keep character in shot
+		transform.position = new Vector3(0, 0, 0);
+		
+		// Call Sphere destroy
+		if (sphFlag)
+			DestroySphere();
+		
+		if (stageCount < 3)
 		{
 			// Decide whether this loop is colour or mask
 			if (loopCount % 2 == 0)
@@ -72,17 +100,17 @@ public class CharacterScript : MonoBehaviour {
 				target.material.color = Color.white; // colour
 				fileType = "image";
 				
-				// Rotate on even wait for first screenshot
-				if (loopCount > 1)
-				{
-					transform.Rotate(0, yStep, 0);
-					yAngle += yStep;
-				}
+				// Rotate on even
+				RotateChar();
 			}
 			else
 			{
 				target.renderer.material.color = Color.black; // mask
 				fileType = "mask";
+				
+				// Add green spheres
+				if (sphFlag)
+					AddPoints();
 			}
 			
 			// After one full turn
@@ -93,61 +121,54 @@ public class CharacterScript : MonoBehaviour {
 				// Turn tilt on/off via menu
 				if (tiltFlag)
 				{
-					// Check if max has been hit
-					if (xAngle >= maxT || xAngle <= -maxT)
-					{
-						xAngle = 0;
-						transform.eulerAngles = new Vector3(0, 0, 0);
-						stageCount++;
-					}
-					
-					// add tilt
-					if (stageCount == 0)
-					{
-						transform.Rotate(xStep, 0, 0);
-						xAngle += xStep;
-					}
-					
-					// swap to opposite tilt
-					if (stageCount == 1)
-					{
-						transform.Rotate(-xStep, 0, 0);
-						xAngle -= xStep;
-					}
+					TiltChar();
 				}
 				else
 				{
 					// If there are to be no tilts, skip straight to new char/animations
 					stageCount = 2;
 				}
+
+				if (stageCount == 2)
+				{
+					// For new/next animation
+					stageCount = 0;
+					
+					// Go to next animation step
+					if (currTime < 1.0f)
+					{
+						// Step the animation
+						AnimateChar();
+					}
+					else 
+						if (animCount == animations.Length)
+						{
+							// If last animation has passed jump to char change
+							stageCount = 3;
+						}
+						else
+						{
+							// Switch to next animation
+							SetAnimator();
+							
+						}
+	
+				}
 				
-				// INSERT ANIMATION CHANGE STAGE HERE AS STAGE 2
 			}
 			
-			
 			// Once all 360s are completed call for next character
-			if (stageCount == 2)
+			if (stageCount == 3)
 			{
 				script.ChangeChar(fileCount);
 			}
-			
 		}
-		
-		// To add animations use something like this 
- 
-//	 	if (stageCount == X)
-//	 	{
-//	 		CallNewAnimationMethod(aniCount);
-//	 		aniCount++;
-//			stageCount = 0;
-//		}
-
 	}
 	
 	void LateUpdate()
 	{
 		// prevent constant screenshots
-		if (stageCount < 2)
+		if (stageCount < 3)
 		{
 			filename = ScreenShotName();
 			
@@ -158,6 +179,86 @@ public class CharacterScript : MonoBehaviour {
 		}
 	}
 	
+	void RotateChar()
+	{
+		// Wait for first 2 loops
+		if (loopCount > 1)
+		{
+			this.transform.Rotate(0, yStep, 0);
+			yAngle += yStep;
+		}
+	}
+	
+	void TiltChar()
+	{
+		// Check if max has been hit
+		if (xAngle >= maxT || xAngle <= -maxT)
+		{
+			xAngle = 0;
+			this.transform.eulerAngles = new Vector3(0, 0, 0);
+			stageCount++;
+		}
+		
+		// add tilt
+		if (stageCount == 0)
+		{
+			this.transform.Rotate(xStep, 0, 0);
+			xAngle += xStep;
+		}
+		
+		// swap to opposite tilt
+		if (stageCount == 1)
+		{
+			this.transform.Rotate(-xStep, 0, 0);
+			xAngle -= xStep;
+		}	
+	}
+	
+	void AnimateChar()
+	{
+		currTime += aStep;
+		
+		// Advances animation to next step
+		charAnimator.ForceStateNormalizedTime(currTime);	
+	}
+	
+	// Create and assign controller and animation
+	void SetAnimator()
+	{
+		// Add the component if it's not already there
+		if (gameObject.GetComponent<Animator>() == null)
+			gameObject.AddComponent<Animator>();
+		
+		// Get the Animator
+		charAnimator = (Animator)gameObject.GetComponent<Animator>();
+		
+		// Set speed to 0 so no real animation takes place
+		charAnimator.speed = 0.0f;
+		
+		// Create the controller
+		UnityEditorInternal.AnimatorController aController = new UnityEditorInternal.AnimatorController();
+		aController.name = "animation_controller";
+		
+		// Add a default layer
+		if (aController.GetLayerCount() == 0)
+			aController.AddLayer("Base");
+		
+		// Create state and apply
+		StateMachine sm = new StateMachine();
+		sm.AddState("default");
+		
+		// Add clip
+		sm.GetState(0).SetMotion(0, (AnimationClip)animations[animCount]);
+		animCount++;
+		
+		aController.SetLayerStateMachine(0, sm);
+		
+		// Set the Controller
+		UnityEditorInternal.AnimatorController.SetAnimatorController(charAnimator, aController);
+		
+		// Get normalized time
+		currTime = charAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+	}
 	
 	public string ScreenShotName()
 	{
@@ -185,6 +286,29 @@ public class CharacterScript : MonoBehaviour {
 		// take shot
 		shot.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
 		
+		
+		//Adds .txt File
+        Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
+		TextWriter tw = new StreamWriter(filename+".txt");
+		foreach (Transform child in allChildren)
+		{
+			bool check = CheckParts(child);
+			if (check == true)
+			{
+				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
+				tw.WriteLine("Name: {0} X: {1} Y: {2}", child.transform.name, objectPos.x, objectPos.y);
+				
+				// Add rays to the points from the camera
+				Ray ray = Camera.main.ScreenPointToRay(new Vector3(objectPos.x, objectPos.y, 0));
+        		Debug.DrawRay(ray.origin , ray.direction * 4, Color.green);
+			}
+			else
+			{
+				continue;
+			}
+		}
+		tw.Close();
+		
 		// reset
 		Camera.main.targetTexture = null;
 		RenderTexture.active = null;
@@ -198,5 +322,67 @@ public class CharacterScript : MonoBehaviour {
 		
 	}
 	
-	#endregion Methods
+	bool CheckParts(Transform t)
+	{
+		List<string> points = new List<string>();
+		points.Add("Hips");
+		points.Add("LeftUpLeg");
+		points.Add("LeftLeg");
+		points.Add("LeftFoot");
+		points.Add("RightUpLeg");
+		points.Add("RightLeg");
+		points.Add("RightFoot");
+		points.Add("LeftShoulder");
+		points.Add("LeftArm");
+		points.Add("LeftForeArm");
+		points.Add("LeftHand");
+		points.Add("Head");
+		points.Add("RightShoulder");
+		points.Add("RightArm");
+		points.Add("RightForeArm");
+		points.Add("RightHand");
+		string temp = t.transform.name;
+
+		if (points.Contains(temp))
+		{
+			return true;
+		}
+			
+		else
+		{
+			return false;
+		}
+		
+	}
+	
+	void AddPoints()
+	{
+		Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
+		foreach (Transform child in allChildren)
+		{
+			bool check = CheckParts(child);
+				if (check == true)
+				{
+					var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);					
+					sphere.transform.position = child.transform.position;
+					sphere.transform.localScale = new Vector3(0.2f,0.2f,0.2f);
+					sphere.renderer.material.color = Color.green;
+					spheres.Add(sphere);
+				}
+				else
+				{
+					continue;
+				}
+			}
+	}
+	
+	void DestroySphere()
+	{
+		foreach (GameObject de in spheres)
+		{
+			Destroy(de);
+		}
+	}
+	
+	#endregion
 }

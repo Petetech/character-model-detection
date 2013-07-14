@@ -14,15 +14,17 @@ public class MenuScript : MonoBehaviour {
 	
 	bool MenuActive = true;
 
-	Rect MenuRect = new Rect(0, 0, 250, 200);
-	Rect ListRect = new Rect(0, Screen.height - 150, 250, 150);
+	Rect MenuRect = new Rect(0, 0, 250, 250);
 	
 	float rotateStep = 15f;
 	bool tiltOnOff = false;
 	float tiltStep = 5f;
 	float maxTilt = 10;
 	string fileLoc = @"C:\Images";
+	bool sphOnOff = false;
+	float aniStep = 0.05f;
 	
+	Vector2 scrollPosition = Vector2.zero;
 	#endregion Fields
 	
 	#region Methods
@@ -36,10 +38,13 @@ public class MenuScript : MonoBehaviour {
 	void LoadFromResources()
 	{
 		charList.Clear();
-		cListStr = "";
+		cListStr = "-Characters-\r\n";
 		
 		// Load up all current characters/prefabs in resources
 		Object[] prefabs = Resources.LoadAll("Characters", typeof(GameObject));
+		
+		// This is just for names
+		Object[] anims = Resources.LoadAll("Animations", typeof(AnimationClip));
 		
 		// Add them to a main list
 		foreach (Object o in prefabs)
@@ -47,6 +52,12 @@ public class MenuScript : MonoBehaviour {
 			charList.Add((GameObject)o);
 			cListStr += o.name + "\r\n";
 		}
+		
+		cListStr += "\r\n-Animations-\r\n";
+		
+		// Add the Animation clips to the display
+		foreach (Object a in anims)
+			cListStr += a.name + "\r\n";
 	}
 	
 	// Display the menus
@@ -55,19 +66,22 @@ public class MenuScript : MonoBehaviour {
 		if (MenuActive)
 		{
 			GUI.Window(0, MenuRect, MenuWindow, "Menu");
-			GUI.Window(1, ListRect, ListWindow, "Current Characters");
 		}
 	}
 	
 	void MenuWindow(int ID)
 	{
-		GUILayout.BeginArea (new Rect(20, 30, 210, 160));
+		GUILayout.BeginArea (new Rect(10, 30, 230, 230));
 		
+		scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, GUILayout.Height(180));
+		
+		// Rotation
 		GUILayout.BeginHorizontal();
 		GUILayout.Label("Rotation Step: " + rotateStep.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
-		rotateStep = GUILayout.HorizontalSlider(rotateStep, 1f, 35f);
+		rotateStep = GUILayout.HorizontalSlider(rotateStep, 1f, 30f);
 		GUILayout.EndHorizontal();
 		
+		// Tilt
 		GUILayout.BeginHorizontal();
 		GUILayout.Label("Tilt On/Off", GUILayout.Width(120));
 		tiltOnOff = GUILayout.Toggle(tiltOnOff, " Add Tilts");
@@ -86,12 +100,35 @@ public class MenuScript : MonoBehaviour {
 			GUILayout.EndHorizontal();
 		}
 		
+		// Save Location
 		GUILayout.BeginHorizontal();
 		GUILayout.Label("Save Location", GUILayout.Width(120));
 		fileLoc = GUILayout.TextField(fileLoc);
 		GUILayout.EndHorizontal();
 		
-		if (GUILayout.Button("Start", GUILayout.Width(80), GUILayout.Height(25)))
+		GUILayout.BeginHorizontal();
+		GUILayout.Label("Spheres On/Off", GUILayout.Width(120));
+		sphOnOff = GUILayout.Toggle(sphOnOff, " Add points");
+		GUILayout.EndHorizontal();
+		
+		// Animation
+		GUILayout.BeginHorizontal();
+		GUILayout.Label("Animation: " + aniStep.ToString("f3"), GUILayout.Width(120));
+		aniStep = GUILayout.HorizontalSlider(aniStep, 0.001f, 0.1f);
+		GUILayout.EndHorizontal();
+		
+		// Character/Animation List
+		GUILayout.BeginVertical();
+		GUI.color = Color.yellow;
+		GUILayout.Label(cListStr);
+		GUI.color = Color.white;
+		GUILayout.EndVertical();
+		
+		GUILayout.EndScrollView();
+		
+		// Buttons
+		GUILayout.BeginHorizontal();
+		if (GUILayout.Button("Start", GUILayout.Width(80)))
 		{
 			// Close windows
 			MenuActive = false;
@@ -101,26 +138,20 @@ public class MenuScript : MonoBehaviour {
 			
 			// Call Start on filecount 0
 			StartChar(0);
-			
 		}
 		
-		GUILayout.EndArea();
-	}
-	
-	void ListWindow(int ID)
-	{
-		Vector2 scrollPosition = Vector2.zero;
-		
-		GUILayout.BeginArea (new Rect(10, 20, 230, 130));
-		
-		scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, GUILayout.Height(80));
-		GUILayout.TextArea(cListStr, GUILayout.Height(80));
-		GUILayout.EndScrollView();
-		
-		if(GUILayout.Button ("Refresh", GUILayout.Width(80)))
+		if(GUILayout.Button ("Reset", GUILayout.Width(80)))
 		{
+			rotateStep = 15f;
+			tiltOnOff = false;
+			tiltStep = 5f;
+			maxTilt = 10;
+			fileLoc = @"C:\Images";
+			sphOnOff = false;
+			aniStep = 0.05f;
 			LoadFromResources();
 		}
+		GUILayout.EndHorizontal();
 		
 		GUILayout.EndArea();
 	}
@@ -158,11 +189,11 @@ public class MenuScript : MonoBehaviour {
 		
 		if (tiltOnOff)
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, sphOnOff, aniStep, fC);
 		}
 		else
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, sphOnOff, aniStep, fC);
 		}
 	}
 			
