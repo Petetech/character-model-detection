@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEditorInternal;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -8,6 +9,7 @@ public class CharacterScript : MonoBehaviour {
 	#region Fields
 	
 	public Renderer target;
+	public Animator charAnimator;
 	public MenuScript script;
 	
 	// Rotate
@@ -17,36 +19,34 @@ public class CharacterScript : MonoBehaviour {
 	bool tiltFlag;
 	float xAngle, xStep, maxT;
 	
+	// Animations
+	Object[] animations;
+	float aStep, currTime;
+	int animCount = 0;
+	
 	// File / Screenshot variables
 	string path, fileType = "image", filename;
 	int fileCount = 0;
 	
+	// Spheres for point display
+	bool sphFlag;
+	List<GameObject> spheres = new List<GameObject>();
+	
 	// Stages/loops
 	int stageCount = 4;
 	int loopCount = 0;
-	
-	//Spheres for deletion
-	List<GameObject> spheres = new List<GameObject>();
 
-	#endregion // Fields
+	#endregion
 	
-	#region Methods
-	
-	void Start()
-	{
-		// Link the MenuScript
-		script = Camera.main.GetComponent<MenuScript>();
-		
-		// Grab the renderer from the object this script is attached to
-		target = gameObject.GetComponentInChildren<Renderer>();
-	}
-	
+	#region Initialise Overloads
 	// Without Tilt
-	public void Initialise(float y, bool x, string l, int c)
+	public void Initialise(float y, bool x, string l, bool s, float a, int c)
 	{
 		yStep = y;
 		tiltFlag = x;
 		path = l;
+		sphFlag = s;
+		aStep = a;
 		fileCount = c;
 		
 		if(!Directory.Exists(path))
@@ -57,20 +57,42 @@ public class CharacterScript : MonoBehaviour {
 	}
 	
 	// With Tilt
-	public void Initialise(float y, bool x, float xS, float mT, string l, int c)
+	public void Initialise(float y, bool x, float xS, float mT, string l, bool s, float a, int c)
 	{
 		xStep = xS;
 		maxT = mT;
 
-		Initialise(y, x, l, c);
+		Initialise(y, x, l, s, a, c);
+	}
+	#endregion
+	
+	#region Methods
+	
+	void Start()
+	{
+		// Link the MenuScript
+		script = Camera.main.GetComponent<MenuScript>();
+		
+		// Grab the renderer from the object this script is attached to
+		target = gameObject.GetComponentInChildren<Renderer>();
+		
+		// Locate the animations
+		animations = Resources.LoadAll("Animations", typeof(AnimationClip));
+		
+		SetAnimator();
 	}
 	
 	// Update is called once per frame
-	void Update () 
+	void Update ()
 	{
-		destroySphere();
+		// Keep character in shot
+		transform.position = new Vector3(0, 0, 0);
 		
-		if (stageCount < 2)
+		// Call Sphere destroy
+		if (sphFlag)
+			DestroySphere();
+		
+		if (stageCount < 3)
 		{
 			// Decide whether this loop is colour or mask
 			if (loopCount % 2 == 0)
@@ -84,8 +106,11 @@ public class CharacterScript : MonoBehaviour {
 			else
 			{
 				target.renderer.material.color = Color.black; // mask
-				addPoints();
 				fileType = "mask";
+				
+				// Add green spheres
+				if (sphFlag)
+					AddPoints();
 			}
 			
 			// After one full turn
@@ -103,28 +128,55 @@ public class CharacterScript : MonoBehaviour {
 					// If there are to be no tilts, skip straight to new char/animations
 					stageCount = 2;
 				}
-				
-				// INSERT ANIMATION CHANGE STAGE HERE AS STAGE 2
+
+				if (stageCount == 2)
+				{
+					// For new/next animation
+					stageCount = 0;
+					
+					// Go to next animation step
+					if (currTime < 1.0f)
+					{
+						// Step the animation
+						AnimateChar();
+					}
+					else 
+						if (animCount == animations.Length)
+						{
+							// If last animation has passed jump to char change
+							stageCount = 3;
+						}
+						else
+						{
+							// Switch to next animation
+							SetAnimator();
+							
+						}
+	
+				}
 				
 			}
 			
 			// Once all 360s are completed call for next character
-			if (stageCount == 2)
+			if (stageCount == 3)
 			{
 				script.ChangeChar(fileCount);
 			}
-			
 		}
-		
-		// To add animations use something like this 
- 
-//	 	if (stageCount == X)
-//	 	{
-//	 		CallNewAnimationMethod(aniCount);
-//	 		aniCount++;
-//			stageCount = 0;
-//		}
-
+	}
+	
+	void LateUpdate()
+	{
+		// prevent constant screenshots
+		if (stageCount < 3)
+		{
+			filename = ScreenShotName();
+			
+			// full 'loop'
+			loopCount++;
+			
+			StartCoroutine(TakeScreenshot());
+		}
 	}
 	
 	void RotateChar()
@@ -162,21 +214,51 @@ public class CharacterScript : MonoBehaviour {
 		}	
 	}
 	
-	
-	void LateUpdate()
+	void AnimateChar()
 	{
-		// prevent constant screenshots
-		if (stageCount < 2)
-		{
-			filename = ScreenShotName();
-			
-			// full 'loop'
-			loopCount++;
-			
-			StartCoroutine(TakeScreenshot());
-		}
+		currTime += aStep;
+		
+		// Advances animation to next step
+		charAnimator.ForceStateNormalizedTime(currTime);	
 	}
 	
+	// Create and assign controller and animation
+	void SetAnimator()
+	{
+		// Add the component if it's not already there
+		if (gameObject.GetComponent<Animator>() == null)
+			gameObject.AddComponent<Animator>();
+		
+		// Get the Animator
+		charAnimator = (Animator)gameObject.GetComponent<Animator>();
+		
+		// Set speed to 0 so no real animation takes place
+		charAnimator.speed = 0.0f;
+		
+		// Create the controller
+		UnityEditorInternal.AnimatorController aController = new UnityEditorInternal.AnimatorController();
+		aController.name = "animation_controller";
+		
+		// Add a default layer
+		if (aController.GetLayerCount() == 0)
+			aController.AddLayer("Base");
+		
+		// Create state and apply
+		StateMachine sm = new StateMachine();
+		sm.AddState("default");
+		
+		// Add clip
+		sm.GetState(0).SetMotion(0, (AnimationClip)animations[animCount]);
+		animCount++;
+		
+		aController.SetLayerStateMachine(0, sm);
+		
+		// Set the Controller
+		UnityEditorInternal.AnimatorController.SetAnimatorController(charAnimator, aController);
+		
+		// Get normalized time
+		currTime = charAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+	}
 	
 	public string ScreenShotName()
 	{
@@ -206,15 +288,19 @@ public class CharacterScript : MonoBehaviour {
 		
 		
 		//Adds .txt File
-		Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
+        Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
 		TextWriter tw = new StreamWriter(filename+".txt");
 		foreach (Transform child in allChildren)
 		{
-			bool check = checkParts(child);
+			bool check = CheckParts(child);
 			if (check == true)
 			{
 				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
-				tw.WriteLine("Name: {0} X: {1} Y:{2}", child.transform.name, objectPos.x, objectPos.y);
+				tw.WriteLine("Name: {0} X: {1} Y: {2}", child.transform.name, objectPos.x, objectPos.y);
+				
+				// Add rays to the points from the camera
+				Ray ray = Camera.main.ScreenPointToRay(new Vector3(objectPos.x, objectPos.y, 0));
+        		Debug.DrawRay(ray.origin , ray.direction * 4, Color.green);
 			}
 			else
 			{
@@ -227,20 +313,16 @@ public class CharacterScript : MonoBehaviour {
 		Camera.main.targetTexture = null;
 		RenderTexture.active = null;
 		Destroy(rt);
+		
 		yield return 0;
 		
 		// Create file
 		byte[] bytes = shot.EncodeToPNG();
 		File.WriteAllBytes(filename, bytes);
 		
-		
 	}
 	
-	#endregion Methods
-	
-	
-	//checks to see what parts are on the model and then returns true if they are the correct ones.
-	bool checkParts(Transform t)
+	bool CheckParts(Transform t)
 	{
 		List<string> points = new List<string>();
 		points.Add("Hips");
@@ -268,22 +350,22 @@ public class CharacterScript : MonoBehaviour {
 			
 		else
 		{
-				return false;
+			return false;
 		}
 		
 	}
 	
-	void addPoints()
+	void AddPoints()
 	{
 		Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
 		foreach (Transform child in allChildren)
 		{
-			bool check = checkParts(child);
+			bool check = CheckParts(child);
 				if (check == true)
 				{
 					var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);					
 					sphere.transform.position = child.transform.position;
-					sphere.transform.localScale = new Vector3(0.2F,0.2F,0.2F);
+					sphere.transform.localScale = new Vector3(0.2f,0.2f,0.2f);
 					sphere.renderer.material.color = Color.green;
 					spheres.Add(sphere);
 				}
@@ -294,15 +376,13 @@ public class CharacterScript : MonoBehaviour {
 			}
 	}
 	
-	void destroySphere()
+	void DestroySphere()
 	{
 		foreach (GameObject de in spheres)
 		{
 			Destroy(de);
 		}
 	}
-}
 	
-
-
-
+	#endregion
+}
