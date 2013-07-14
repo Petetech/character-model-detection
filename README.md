@@ -5,10 +5,10 @@ Using the Unity game engine to detect characters in images/screenshots with a li
 Follow the development here:  
 [Project Progress](https://github.com/petetech/character-model-detection/wiki/Project-Progress) 
 
-To use the scripts I have written (They are buggy at the moment) please read:   
+To use the scripts I have written please read:   
 [Instructions for using Scripts](https://github.com/petetech/character-model-detection/wiki/Instructions-for-using-Scripts)
 
-You can download the full project, scenes and all from the main folder.
+You can download the full demo project (CharacterDetection) or just the script files.
 
 =========================
 
