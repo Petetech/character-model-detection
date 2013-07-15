@@ -21,7 +21,7 @@ public class MenuScript : MonoBehaviour {
 	float tiltStep = 5f;
 	float maxTilt = 10;
 	string fileLoc = @"C:\Images";
-	bool sphOnOff = false;
+	bool pxOnOff = false;
 	float aniStep = 0.05f;
 	
 	Vector2 scrollPosition = Vector2.zero;
@@ -107,8 +107,8 @@ public class MenuScript : MonoBehaviour {
 		GUILayout.EndHorizontal();
 		
 		GUILayout.BeginHorizontal();
-		GUILayout.Label("Spheres On/Off", GUILayout.Width(120));
-		sphOnOff = GUILayout.Toggle(sphOnOff, " Add points");
+		GUILayout.Label("Pixels On/Off", GUILayout.Width(120));
+		pxOnOff = GUILayout.Toggle(pxOnOff, " Add points");
 		GUILayout.EndHorizontal();
 		
 		// Animation
@@ -147,7 +147,7 @@ public class MenuScript : MonoBehaviour {
 			tiltStep = 5f;
 			maxTilt = 10;
 			fileLoc = @"C:\Images";
-			sphOnOff = false;
+			pxOnOff = false;
 			aniStep = 0.05f;
 			LoadFromResources();
 		}
@@ -189,11 +189,11 @@ public class MenuScript : MonoBehaviour {
 		
 		if (tiltOnOff)
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, sphOnOff, aniStep, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, pxOnOff, aniStep, fC);
 		}
 		else
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, sphOnOff, aniStep, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, pxOnOff, aniStep, fC);
 		}
 	}
 			

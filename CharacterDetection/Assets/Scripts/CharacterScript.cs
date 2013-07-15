@@ -28,9 +28,11 @@ public class CharacterScript : MonoBehaviour {
 	string path, fileType = "image", filename;
 	int fileCount = 0;
 	
-	// Spheres for point display
-	bool sphFlag;
-	List<GameObject> spheres = new List<GameObject>();
+	// Point display
+	bool pxFlag;
+	List<Vector3> points = new List<Vector3>();
+	Texture2D brush;
+	int size = 8;
 	
 	// Stages/loops
 	int stageCount = 4;
@@ -40,12 +42,12 @@ public class CharacterScript : MonoBehaviour {
 	
 	#region Initialise Overloads
 	// Without Tilt
-	public void Initialise(float y, bool x, string l, bool s, float a, int c)
+	public void Initialise(float y, bool x, string l, bool p, float a, int c)
 	{
 		yStep = y;
 		tiltFlag = x;
 		path = l;
-		sphFlag = s;
+		pxFlag = p;
 		aStep = a;
 		fileCount = c;
 		
@@ -57,12 +59,12 @@ public class CharacterScript : MonoBehaviour {
 	}
 	
 	// With Tilt
-	public void Initialise(float y, bool x, float xS, float mT, string l, bool s, float a, int c)
+	public void Initialise(float y, bool x, float xS, float mT, string l, bool p, float a, int c)
 	{
 		xStep = xS;
 		maxT = mT;
 
-		Initialise(y, x, l, s, a, c);
+		Initialise(y, x, l, p, a, c);
 	}
 	#endregion
 	
@@ -70,6 +72,13 @@ public class CharacterScript : MonoBehaviour {
 	
 	void Start()
 	{
+		// Create the point brush
+		if (pxFlag)
+		{
+			brush = new Texture2D(size, size);
+		    CreateTex(Color.green);
+		}
+		
 		// Link the MenuScript
 		script = Camera.main.GetComponent<MenuScript>();
 		
@@ -82,15 +91,30 @@ public class CharacterScript : MonoBehaviour {
 		SetAnimator();
 	}
 	
+	// create the 4 pixel wide blocks
+	void CreateTex(Color c)
+	{
+	    for (int x = 0; x < size; x++)
+	        for (int y = 0; y < size; y++)
+	         	brush.SetPixel(x, y, c);
+		
+	    brush.Apply();
+	}
+	
+	void OnGUI()
+	{
+		// Add points to screen
+		foreach (Vector3 v in points)
+		{
+			GUI.Label(new Rect(v.x, Screen.height - v.y, size, size), brush);	
+		}	
+	}
+	
 	// Update is called once per frame
 	void Update ()
 	{
 		// Keep character in shot
 		transform.position = new Vector3(0, 0, 0);
-		
-		// Call Sphere destroy
-		if (sphFlag)
-			DestroySphere();
 		
 		if (stageCount < 3)
 		{
@@ -107,10 +131,6 @@ public class CharacterScript : MonoBehaviour {
 			{
 				target.renderer.material.color = Color.black; // mask
 				fileType = "mask";
-				
-				// Add green spheres
-				if (sphFlag)
-					AddPoints();
 			}
 			
 			// After one full turn
@@ -290,6 +310,11 @@ public class CharacterScript : MonoBehaviour {
 		//Adds .txt File
         Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
 		TextWriter tw = new StreamWriter(filename+".txt");
+		
+		// Clear before filling
+		if (pxFlag)
+			points.Clear();
+		
 		foreach (Transform child in allChildren)
 		{
 			bool check = CheckParts(child);
@@ -298,9 +323,8 @@ public class CharacterScript : MonoBehaviour {
 				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
 				tw.WriteLine("Name: {0} X: {1} Y: {2}", child.transform.name, objectPos.x, objectPos.y);
 				
-				// Add rays to the points from the camera
-				Ray ray = Camera.main.ScreenPointToRay(new Vector3(objectPos.x, objectPos.y, 0));
-        		Debug.DrawRay(ray.origin , ray.direction * 4, Color.green);
+				// Add point to screen
+				points.Add(objectPos);
 			}
 			else
 			{
@@ -353,35 +377,6 @@ public class CharacterScript : MonoBehaviour {
 			return false;
 		}
 		
-	}
-	
-	void AddPoints()
-	{
-		Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
-		foreach (Transform child in allChildren)
-		{
-			bool check = CheckParts(child);
-				if (check == true)
-				{
-					var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);					
-					sphere.transform.position = child.transform.position;
-					sphere.transform.localScale = new Vector3(0.2f,0.2f,0.2f);
-					sphere.renderer.material.color = Color.green;
-					spheres.Add(sphere);
-				}
-				else
-				{
-					continue;
-				}
-			}
-	}
-	
-	void DestroySphere()
-	{
-		foreach (GameObject de in spheres)
-		{
-			Destroy(de);
-		}
 	}
 	
 	#endregion
