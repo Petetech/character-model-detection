@@ -8,9 +8,16 @@ public class CharacterScript : MonoBehaviour {
 	
 	#region Fields
 	
+	// Components
 	public Renderer target;
 	public Animator charAnimator;
 	public MenuScript script;
+	public Transform[] allChildren;
+	
+	// Skeleton objects
+	List<SkeletonItem> skeletonList = new List<SkeletonItem>();
+	Skeleton currentSkeleton = new Skeleton();
+	float disThreshold;
 	
 	// Rotate
 	float yAngle, yStep;
@@ -28,9 +35,10 @@ public class CharacterScript : MonoBehaviour {
 	string path, fileType = "image", filename;
 	int fileCount = 0;
 	
-	// Spheres for point display
-	bool sphFlag;
-	List<GameObject> spheres = new List<GameObject>();
+	// Point display
+	bool pxFlag;
+	Texture2D brush;
+	int size = 4;
 	
 	// Stages/loops
 	int stageCount = 4;
@@ -39,14 +47,16 @@ public class CharacterScript : MonoBehaviour {
 	#endregion
 	
 	#region Initialise Overloads
+	
 	// Without Tilt
-	public void Initialise(float y, bool x, string l, bool s, float a, int c)
+	public void Initialise(float y, bool x, string l, bool p, float a, float v, int c)
 	{
 		yStep = y;
 		tiltFlag = x;
 		path = l;
-		sphFlag = s;
+		pxFlag = p;
 		aStep = a;
+		disThreshold = v;
 		fileCount = c;
 		
 		if(!Directory.Exists(path))
@@ -57,16 +67,34 @@ public class CharacterScript : MonoBehaviour {
 	}
 	
 	// With Tilt
-	public void Initialise(float y, bool x, float xS, float mT, string l, bool s, float a, int c)
+	public void Initialise(float y, bool x, float xS, float mT, string l, bool p, float a, float v, int c)
 	{
 		xStep = xS;
 		maxT = mT;
 
-		Initialise(y, x, l, s, a, c);
+		Initialise(y, x, l, p, a, v, c);
 	}
+	
 	#endregion
 	
-	#region Methods
+	#region MonoBehaviour Methods
+	
+	void Awake()
+	{
+		// Create the point brush
+		brush = new Texture2D(size, size);
+		CreateTex(Color.green);
+	}
+	
+	// create the blocks
+	void CreateTex(Color c)
+	{
+	    for (int x = 0; x < size; x++)
+	        for (int y = 0; y < size; y++)
+	         	brush.SetPixel(x, y, c);
+		
+	    brush.Apply();
+	}
 	
 	void Start()
 	{
@@ -76,21 +104,34 @@ public class CharacterScript : MonoBehaviour {
 		// Grab the renderer from the object this script is attached to
 		target = gameObject.GetComponentInChildren<Renderer>();
 		
+		// Get all the characters parts
+		allChildren = gameObject.transform.GetComponentsInChildren<Transform>();
+		
 		// Locate the animations
 		animations = Resources.LoadAll("Animations", typeof(AnimationClip));
 		
 		SetAnimator();
 	}
 	
+	void OnGUI()
+	{
+		// Add points to screen
+		if (pxFlag)
+		{
+			foreach (Vector3 v in currentSkeleton.GetParts())
+			{
+				GUI.DrawTexture(new Rect(v.x, (Screen.height - v.y) - 1, 2, 2), brush);	
+			}
+		}
+	}
+	
 	// Update is called once per frame
 	void Update ()
-	{
+	{		
+		currentSkeleton.SetParts(allChildren);
+		
 		// Keep character in shot
 		transform.position = new Vector3(0, 0, 0);
-		
-		// Call Sphere destroy
-		if (sphFlag)
-			DestroySphere();
 		
 		if (stageCount < 3)
 		{
@@ -107,10 +148,6 @@ public class CharacterScript : MonoBehaviour {
 			{
 				target.renderer.material.color = Color.black; // mask
 				fileType = "mask";
-				
-				// Add green spheres
-				if (sphFlag)
-					AddPoints();
 			}
 			
 			// After one full turn
@@ -131,28 +168,12 @@ public class CharacterScript : MonoBehaviour {
 
 				if (stageCount == 2)
 				{
-					// For new/next animation
-					stageCount = 0;
-					
-					// Go to next animation step
-					if (currTime < 1.0f)
+					do
 					{
-						// Step the animation
 						AnimateChar();
-					}
-					else 
-						if (animCount == animations.Length)
-						{
-							// If last animation has passed jump to char change
-							stageCount = 3;
-						}
-						else
-						{
-							// Switch to next animation
-							SetAnimator();
-							
-						}
-	
+						currentSkeleton.SetParts(allChildren);
+					} 
+					while (CompareParts(currentSkeleton) && stageCount != 3);
 				}
 				
 			}
@@ -170,19 +191,25 @@ public class CharacterScript : MonoBehaviour {
 		// prevent constant screenshots
 		if (stageCount < 3)
 		{
-			filename = ScreenShotName();
+			// Skip the first two frames to sync everything
+			if (loopCount > 1)
+			{
+				filename = ScreenShotName();
+				StartCoroutine(TakeScreenshot());
+			}
 			
 			// full 'loop'
 			loopCount++;
-			
-			StartCoroutine(TakeScreenshot());
 		}
 	}
 	
+	#endregion
+	
+	#region Extra Methods
+	
 	void RotateChar()
 	{
-		// Wait for first 2 loops
-		if (loopCount > 1)
+		if (loopCount > 3)
 		{
 			this.transform.Rotate(0, yStep, 0);
 			yAngle += yStep;
@@ -199,7 +226,6 @@ public class CharacterScript : MonoBehaviour {
 			stageCount++;
 		}
 		
-		// add tilt
 		if (stageCount == 0)
 		{
 			this.transform.Rotate(xStep, 0, 0);
@@ -216,10 +242,27 @@ public class CharacterScript : MonoBehaviour {
 	
 	void AnimateChar()
 	{
-		currTime += aStep;
+		stageCount = 0;
 		
-		// Advances animation to next step
-		charAnimator.ForceStateNormalizedTime(currTime);	
+		// Go to next animation step
+		if (currTime < 1.0f)
+		{
+			currTime += aStep;
+			
+			// Advances animation to next step
+			charAnimator.ForceStateNormalizedTime(currTime);
+		}
+		else 
+			if (animCount == animations.Length)
+			{
+				// If last animation has passed jump to char change
+				stageCount = 3;
+			}
+			else
+			{
+				// Switch to next animation
+				SetAnimator();
+			}
 	}
 	
 	// Create and assign controller and animation
@@ -274,76 +317,137 @@ public class CharacterScript : MonoBehaviour {
 		// wait for render
 		yield return new WaitForEndOfFrame();
 		
-		// image format and size - POSSIBLE CHANGE to crop whitespace
-		RenderTexture rt = new RenderTexture(Screen.width , Screen.height, 24);
+		// rerun points check
+		currentSkeleton.SetParts(allChildren);
+		
+		// image format and size
 		Texture2D shot = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
 		
-		// Select main camera
-		Camera.main.targetTexture = rt;
-		Camera.main.Render();
-		RenderTexture.active = rt;
+		//Adds .txt File
+		TextWriter tw = new StreamWriter(filename+".txt");
+		tw.Write(currentSkeleton.GetPartsWithName());
+		tw.Close();
 		
 		// take shot
 		shot.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
-		
-		
-		//Adds .txt File
-        Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
-		TextWriter tw = new StreamWriter(filename+".txt");
-		foreach (Transform child in allChildren)
-		{
-			bool check = CheckParts(child);
-			if (check == true)
-			{
-				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
-				tw.WriteLine("Name: {0} X: {1} Y: {2}", child.transform.name, objectPos.x, objectPos.y);
-				
-				// Add rays to the points from the camera
-				Ray ray = Camera.main.ScreenPointToRay(new Vector3(objectPos.x, objectPos.y, 0));
-        		Debug.DrawRay(ray.origin , ray.direction * 4, Color.green);
-			}
-			else
-			{
-				continue;
-			}
-		}
-		tw.Close();
-		
-		// reset
-		Camera.main.targetTexture = null;
-		RenderTexture.active = null;
-		Destroy(rt);
 		
 		yield return 0;
 		
 		// Create file
 		byte[] bytes = shot.EncodeToPNG();
 		File.WriteAllBytes(filename, bytes);
+		DestroyObject(shot);
+	}
+	#endregion
+	
+	#region Scoring and Points System
+	
+	bool CompareParts(Skeleton currentSet)
+	{
+
+		List<Vector3> compareList;
+		List<Vector3> newList = currentSet.GetParts();
 		
+		float score;
+		bool isSame = false;
+		
+		for (int i = 0; i < skeletonList.Count; i++)
+		{
+			score = 0;
+			compareList = skeletonList[i].GetParts();
+			
+			for (int i2 = 0; i2 < newList.Count; i2++)
+			{
+				score += Vector3.Distance(newList[i2], compareList[i2]);
+			}
+			
+			if (score < disThreshold)
+			{
+				isSame = true;
+			}
+		}
+		
+		if (isSame == false || skeletonList.Count == 0)
+		{
+			// Add to list
+			skeletonList.Add(new SkeletonItem(newList));
+			return false;
+		}
+		else
+		{
+			return true;
+		}
 	}
 	
-	bool CheckParts(Transform t)
+	
+}
+
+// Collection of point data, values will be changing all the time
+public class Skeleton
+{
+	string fileoutput;
+	List<string> pointnames;
+	List<Vector3> coords = new List<Vector3>();
+	
+	
+	public Skeleton()
 	{
-		List<string> points = new List<string>();
-		points.Add("Hips");
-		points.Add("LeftUpLeg");
-		points.Add("LeftLeg");
-		points.Add("LeftFoot");
-		points.Add("RightUpLeg");
-		points.Add("RightLeg");
-		points.Add("RightFoot");
-		points.Add("LeftShoulder");
-		points.Add("LeftArm");
-		points.Add("LeftForeArm");
-		points.Add("LeftHand");
-		points.Add("Head");
-		points.Add("RightShoulder");
-		points.Add("RightArm");
-		points.Add("RightForeArm");
-		points.Add("RightHand");
+		pointnames = new List<string>();
+		pointnames.Add("Hips");
+		pointnames.Add("LeftUpLeg");
+		pointnames.Add("LeftLeg");
+		pointnames.Add("LeftFoot");
+		pointnames.Add("RightUpLeg");
+		pointnames.Add("RightLeg");
+		pointnames.Add("RightFoot");
+		pointnames.Add("LeftShoulder");
+		pointnames.Add("LeftArm");
+		pointnames.Add("LeftForeArm");
+		pointnames.Add("LeftHand");
+		pointnames.Add("Head");
+		pointnames.Add("RightShoulder");
+		pointnames.Add("RightArm");
+		pointnames.Add("RightForeArm");
+		pointnames.Add("RightHand");	
+	}
+	
+	public void SetParts(Transform[] allChildren)
+	{
+		coords.Clear();
+		fileoutput = "";
+		
+		foreach (Transform child in allChildren)
+		{
+			bool check = CheckPart(child);
+			if (check == true)
+			{
+				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
+				fileoutput += string.Format("Name: {0} X: {1} Y: {2}\r\n", child.transform.name, objectPos.x, objectPos.y);
+				
+				coords.Add(objectPos);
+			}
+			else
+			{
+				continue;
+			}
+		}
+	}
+	
+	public List<Vector3> GetParts()
+	{
+		return coords;
+	}
+	
+	public string GetPartsWithName()
+	{
+		return fileoutput;
+	}
+	
+	bool CheckPart(Transform t)
+	{
 		string temp = t.transform.name;
 
-		if (points.Contains(temp))
+		if (pointnames.Contains(temp))
 		{
 			return true;
 		}
@@ -354,35 +458,23 @@ public class CharacterScript : MonoBehaviour {
 		}
 		
 	}
-	
-	void AddPoints()
-	{
-		Transform [] allChildren = this.transform.GetComponentsInChildren<Transform>();
-		foreach (Transform child in allChildren)
-		{
-			bool check = CheckParts(child);
-				if (check == true)
-				{
-					var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);					
-					sphere.transform.position = child.transform.position;
-					sphere.transform.localScale = new Vector3(0.2f,0.2f,0.2f);
-					sphere.renderer.material.color = Color.green;
-					spheres.Add(sphere);
-				}
-				else
-				{
-					continue;
-				}
-			}
-	}
-	
-	void DestroySphere()
-	{
-		foreach (GameObject de in spheres)
-		{
-			Destroy(de);
-		}
-	}
-	
-	#endregion
+
 }
+
+// List items only
+public class SkeletonItem
+{
+	List<Vector3> itemCoords;
+	
+	public SkeletonItem(List<Vector3> L)
+	{
+		itemCoords = new List<Vector3>(L);	
+	}
+	
+	public List<Vector3> GetParts()
+	{
+		return itemCoords;	
+	}
+}
+
+#endregion

@@ -21,17 +21,16 @@ public class MenuScript : MonoBehaviour {
 	float tiltStep = 5f;
 	float maxTilt = 10;
 	string fileLoc = @"C:\Images";
-	bool sphOnOff = false;
+	bool pxOnOff = false;
 	float aniStep = 0.05f;
+	float aniVar = 25f;
 	
 	Vector2 scrollPosition = Vector2.zero;
-	#endregion Fields
+	#endregion
 	
-	#region Methods
+	#region Initial Loading
 	
-	// Use this for initialization
 	void Start() {
-		// Call Load
 		LoadFromResources();
 	}
 	
@@ -60,7 +59,10 @@ public class MenuScript : MonoBehaviour {
 			cListStr += a.name + "\r\n";
 	}
 	
-	// Display the menus
+	#endregion
+	
+	#region Interface
+	
 	void OnGUI()
 	{
 		if (MenuActive)
@@ -106,15 +108,22 @@ public class MenuScript : MonoBehaviour {
 		fileLoc = GUILayout.TextField(fileLoc);
 		GUILayout.EndHorizontal();
 		
+		// Show points in green
 		GUILayout.BeginHorizontal();
-		GUILayout.Label("Spheres On/Off", GUILayout.Width(120));
-		sphOnOff = GUILayout.Toggle(sphOnOff, " Add points");
+		GUILayout.Label("Pixels On/Off", GUILayout.Width(120));
+		pxOnOff = GUILayout.Toggle(pxOnOff, " Add points");
 		GUILayout.EndHorizontal();
 		
 		// Animation
 		GUILayout.BeginHorizontal();
 		GUILayout.Label("Animation: " + aniStep.ToString("f3"), GUILayout.Width(120));
 		aniStep = GUILayout.HorizontalSlider(aniStep, 0.001f, 0.1f);
+		GUILayout.EndHorizontal();
+		
+		// Limit Poses
+		GUILayout.BeginHorizontal();
+		GUILayout.Label("Pose Variation: " + aniVar.ToString("f2"), GUILayout.Width(120));
+		aniVar = GUILayout.HorizontalSlider(aniVar, 0f, 100f);
 		GUILayout.EndHorizontal();
 		
 		// Character/Animation List
@@ -147,8 +156,10 @@ public class MenuScript : MonoBehaviour {
 			tiltStep = 5f;
 			maxTilt = 10;
 			fileLoc = @"C:\Images";
-			sphOnOff = false;
+			pxOnOff = false;
 			aniStep = 0.05f;
+			aniVar = 25f;
+			
 			LoadFromResources();
 		}
 		GUILayout.EndHorizontal();
@@ -156,7 +167,11 @@ public class MenuScript : MonoBehaviour {
 		GUILayout.EndArea();
 	}
 	
-	// Overloaded to prevent repeat code and for the first character
+	#endregion
+	
+	#region Character Loading
+	
+	// Overloaded for the first character
 	public void ChangeChar()
 	{
 		Destroy(current);
@@ -189,18 +204,13 @@ public class MenuScript : MonoBehaviour {
 		
 		if (tiltOnOff)
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, sphOnOff, aniStep, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, pxOnOff, aniStep, aniVar, fC);
 		}
 		else
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, sphOnOff, aniStep, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, pxOnOff, aniStep, aniVar, fC);
 		}
 	}
-			
-	// Update is called once per frame
-	void Update() {
-	
-	}
-	
-	#endregion Methods
+
+	#endregion
 }
