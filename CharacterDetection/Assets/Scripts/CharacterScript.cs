@@ -176,6 +176,7 @@ public class CharacterScript : MonoBehaviour {
 				
 			}
 			
+			// Collect the point locations
 			currentSkeleton.SetParts(allChildren);
 			
 			// Once all 360s are completed call for next character
@@ -316,9 +317,6 @@ public class CharacterScript : MonoBehaviour {
 	{
 		// wait for render
 		yield return new WaitForEndOfFrame();
-		
-		// rerun points check
-		currentSkeleton.SetParts(allChildren);
 		
 		// image format and size
 		Texture2D shot = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
