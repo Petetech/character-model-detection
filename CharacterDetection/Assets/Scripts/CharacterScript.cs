@@ -423,7 +423,6 @@ public class Skeleton
 			{
 				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
 				fileoutput += string.Format("Name: {0} X: {1} Y: {2}\r\n", child.transform.name, objectPos.x, objectPos.y);
-				
 				coords.Add(objectPos);
 			}
 			else
@@ -431,6 +430,7 @@ public class Skeleton
 				continue;
 			}
 		}
+		extrapolatePoints(allChildren);
 	}
 	
 	public List<Vector3> GetParts()
@@ -457,6 +457,96 @@ public class Skeleton
 			return false;
 		}
 		
+	}
+	
+	void extrapolatePoints(Transform[] allChildren)
+	{
+		foreach (Transform childA in allChildren)
+		{
+			foreach (Transform childB in allChildren)
+			{
+				if ((childA.name == "Hips")&&(childB.name == "Head"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: Chest(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);						
+				}
+				else if ((childA.name == "LeftUpLeg")&&(childB.name == "LeftLeg"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: LeftThigh(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				
+				else if ((childA.name == "LeftLeg")&&(childB.name == "LeftFoot"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: LeftShin(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "RightUpLeg") && (childB.name == "RightLeg"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: RightThigh(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "RightLeg") && (childB.name == "RightFoot"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: RightShin(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "LeftShoulder") && (childB.name == "LeftArm"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: LeftCollar(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "LeftArm") && (childB.name == "LeftForeArm"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: LeftArmTop(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "LeftForeArm") && (childB.name == "LeftHand"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: LeftArmBottom(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "RightShoulder") && (childB.name == "RightArm"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: RightCollar(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "RightArm") && (childB.name == "RightForeArm"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: RightArmTop(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else if ((childA.name == "RightForeArm") && (childB.name == "RightHand"))
+				{
+					Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(childA.position,childB.position));
+					fileoutput += string.Format("Name: RightArmBottom(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
+					coords.Add(temp);
+				}
+				else 	
+				{
+					continue;
+				}
+			}
+		}
+	}
+	
+	Vector3 calcExtrapolation(Vector3 a, Vector3 b)
+	{
+		Vector3 c = a-b;
+		c.x = c.x/2;
+		c.y = c.y/2;
+		c.z = c.z/2;
+		return c;
 	}
 
 }
