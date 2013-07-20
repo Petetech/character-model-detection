@@ -546,6 +546,7 @@ public class Skeleton
 		c.x = c.x/2;
 		c.y = c.y/2;
 		c.z = c.z/2;
+		c= b+c;
 		return c;
 	}
 
