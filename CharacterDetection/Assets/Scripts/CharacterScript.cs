@@ -127,9 +127,7 @@ public class CharacterScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update ()
-	{		
-		currentSkeleton.SetParts(allChildren);
-		
+	{			
 		// Keep character in shot
 		transform.position = new Vector3(0, 0, 0);
 		
@@ -177,6 +175,8 @@ public class CharacterScript : MonoBehaviour {
 				}
 				
 			}
+			
+			currentSkeleton.SetParts(allChildren);
 			
 			// Once all 360s are completed call for next character
 			if (stageCount == 3)
