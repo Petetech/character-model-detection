@@ -30,6 +30,7 @@ public class CharacterScript : MonoBehaviour {
 	Object[] animations;
 	float aStep, currTime;
 	int animCount = 0;
+	bool pauseFlag = true;
 	
 	// File / Screenshot variables
 	string path, fileType = "image", filename;
@@ -127,13 +128,13 @@ public class CharacterScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update ()
-	{			
+	{		
 		// Keep character in shot
 		transform.position = new Vector3(0, 0, 0);
 		
 		if (stageCount < 3)
 		{
-			// Decide whether this loop is colour or mask
+			// colour or mask
 			if (loopCount % 2 == 0)
 			{
 				target.material.color = Color.white; // colour
@@ -177,8 +178,8 @@ public class CharacterScript : MonoBehaviour {
 			}
 			
 			// Collect the point locations
-			currentSkeleton.SetParts(allChildren);
-			
+            currentSkeleton.SetParts(allChildren);
+
 			// Once all 360s are completed call for next character
 			if (stageCount == 3)
 			{
@@ -189,19 +190,17 @@ public class CharacterScript : MonoBehaviour {
 	
 	void LateUpdate()
 	{
-		// prevent constant screenshots
-		if (stageCount < 3)
+		// skip first screenshot of every pose
+		if (!pauseFlag)
 		{
-			// Skip the first two frames to sync everything
-			if (loopCount > 1)
-			{
-				filename = ScreenShotName();
-				StartCoroutine(TakeScreenshot());
-			}
+			filename = ScreenShotName();
+			StartCoroutine(TakeScreenshot());
 			
 			// full 'loop'
 			loopCount++;
 		}
+		
+		pauseFlag = false;
 	}
 	
 	#endregion
@@ -210,7 +209,8 @@ public class CharacterScript : MonoBehaviour {
 	
 	void RotateChar()
 	{
-		if (loopCount > 3)
+		// Wait for first 2 screenshots
+		if (loopCount > 1)
 		{
 			this.transform.Rotate(0, yStep, 0);
 			yAngle += yStep;
@@ -243,9 +243,10 @@ public class CharacterScript : MonoBehaviour {
 	
 	void AnimateChar()
 	{
+		pauseFlag = true;
+		loopCount = 0;
 		stageCount = 0;
 		
-		// Go to next animation step
 		if (currTime < 1.0f)
 		{
 			currTime += aStep;
@@ -273,21 +274,17 @@ public class CharacterScript : MonoBehaviour {
 		if (gameObject.GetComponent<Animator>() == null)
 			gameObject.AddComponent<Animator>();
 		
-		// Get the Animator
 		charAnimator = (Animator)gameObject.GetComponent<Animator>();
 		
 		// Set speed to 0 so no real animation takes place
 		charAnimator.speed = 0.0f;
 		
-		// Create the controller
 		UnityEditorInternal.AnimatorController aController = new UnityEditorInternal.AnimatorController();
 		aController.name = "animation_controller";
 		
-		// Add a default layer
 		if (aController.GetLayerCount() == 0)
 			aController.AddLayer("Base");
 		
-		// Create state and apply
 		StateMachine sm = new StateMachine();
 		sm.AddState("default");
 		
@@ -297,7 +294,6 @@ public class CharacterScript : MonoBehaviour {
 		
 		aController.SetLayerStateMachine(0, sm);
 		
-		// Set the Controller
 		UnityEditorInternal.AnimatorController.SetAnimatorController(charAnimator, aController);
 		
 		// Get normalized time
@@ -322,9 +318,12 @@ public class CharacterScript : MonoBehaviour {
 		Texture2D shot = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
 		
 		//Adds .txt File
-		TextWriter tw = new StreamWriter(filename+".txt");
-		tw.Write(currentSkeleton.GetPartsWithName());
-		tw.Close();
+		if (fileType == "image")
+		{
+			TextWriter tw = new StreamWriter(string.Format(@"{0}\{1}{2}.txt", path, "points", fileCount.ToString().PadLeft(5,'0')));
+			tw.Write(currentSkeleton.GetPartsWithName());
+			tw.Close();
+		}
 		
 		// take shot
 		shot.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
@@ -342,7 +341,6 @@ public class CharacterScript : MonoBehaviour {
 	
 	bool CompareParts(Skeleton currentSet)
 	{
-
 		List<Vector3> compareList;
 		List<Vector3> newList = currentSet.GetParts();
 		
@@ -376,8 +374,6 @@ public class CharacterScript : MonoBehaviour {
 			return true;
 		}
 	}
-	
-	
 }
 
 // Collection of point data, values will be changing all the time
@@ -421,6 +417,7 @@ public class Skeleton
 			{
 				Vector3 objectPos = Camera.main.WorldToScreenPoint(child.transform.position);
 				fileoutput += string.Format("Name: {0} X: {1} Y: {2}\r\n", child.transform.name, objectPos.x, objectPos.y);
+				
 				coords.Add(objectPos);
 			}
 			else
@@ -540,14 +537,11 @@ public class Skeleton
 	
 	Vector3 calcExtrapolation(Vector3 a, Vector3 b)
 	{
-		Vector3 c = a-b;
-		c.x = c.x/2;
-		c.y = c.y/2;
-		c.z = c.z/2;
-		c= b+c;
+		Vector3 c = (a-b) / 2f;
+		c = b+c;
+		
 		return c;
 	}
-
 }
 
 // List items only
