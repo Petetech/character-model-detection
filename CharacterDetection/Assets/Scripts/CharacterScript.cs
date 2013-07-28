@@ -180,10 +180,6 @@ public class CharacterScript : MonoBehaviour {
 			
 			// Collect the point locations
             currentSkeleton.SetParts(allChildren);
-			
-			// Add the first pose to the list
-			if (!pauseFlag && skeletonList.Count == 0)
-				skeletonList.Add(new SkeletonItem(currentSkeleton.GetParts()));
 
 			// Once all 360s are completed call for next character
 			if (stageCount == 3)
@@ -372,7 +368,7 @@ public class CharacterScript : MonoBehaviour {
 			}
 		}
 		
-		if (isSame == false)
+		if (isSame == false || skeletonList.Count == 0)
 		{
 			// Add to list
 			skeletonList.Add(new SkeletonItem(newList));
