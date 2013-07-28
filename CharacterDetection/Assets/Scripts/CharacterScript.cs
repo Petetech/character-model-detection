@@ -174,11 +174,14 @@ public class CharacterScript : MonoBehaviour {
 					} 
 					while (CompareParts(currentSkeleton) && stageCount != 3);
 				}
-				
 			}
 			
 			// Collect the point locations
             currentSkeleton.SetParts(allChildren);
+			
+			// Add the first pose to the list
+			if (!pauseFlag && skeletonList.Count == 0)
+				skeletonList.Add(new SkeletonItem(currentSkeleton.GetParts()));
 
 			// Once all 360s are completed call for next character
 			if (stageCount == 3)
@@ -191,7 +194,7 @@ public class CharacterScript : MonoBehaviour {
 	void LateUpdate()
 	{
 		// skip first screenshot of every pose
-		if (!pauseFlag)
+		if (!pauseFlag && stageCount < 3)
 		{
 			filename = ScreenShotName();
 			StartCoroutine(TakeScreenshot());
@@ -317,7 +320,7 @@ public class CharacterScript : MonoBehaviour {
 		// image format and size
 		Texture2D shot = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
 		
-		//Adds .txt File
+		// Adds .txt File
 		if (fileType == "image")
 		{
 			TextWriter tw = new StreamWriter(string.Format(@"{0}\{1}{2}.txt", path, "points", fileCount.ToString().PadLeft(5,'0')));
@@ -335,6 +338,7 @@ public class CharacterScript : MonoBehaviour {
 		File.WriteAllBytes(filename, bytes);
 		DestroyObject(shot);
 	}
+	
 	#endregion
 	
 	#region Scoring and Points System
@@ -363,7 +367,7 @@ public class CharacterScript : MonoBehaviour {
 			}
 		}
 		
-		if (isSame == false || skeletonList.Count == 0)
+		if (isSame == false)
 		{
 			// Add to list
 			skeletonList.Add(new SkeletonItem(newList));
