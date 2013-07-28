@@ -31,6 +31,7 @@ public class CharacterScript : MonoBehaviour {
 	float aStep, currTime;
 	int animCount = 0;
 	bool pauseFlag = true;
+	bool newAnim = false;
 	
 	// File / Screenshot variables
 	string path, fileType = "image", filename;
@@ -169,10 +170,11 @@ public class CharacterScript : MonoBehaviour {
 				{
 					do
 					{
+						newAnim = false;
 						AnimateChar();
 						currentSkeleton.SetParts(allChildren);
-					} 
-					while (CompareParts(currentSkeleton) && stageCount != 3);
+					}
+					while(CompareParts(currentSkeleton) && stageCount != 3 && !newAnim);
 				}
 			}
 			
@@ -257,17 +259,20 @@ public class CharacterScript : MonoBehaviour {
 			// Advances animation to next step
 			charAnimator.ForceStateNormalizedTime(currTime);
 		}
-		else 
-			if (animCount == animations.Length)
+		else
+		{
+			if (animCount < animations.Length)
+			{
+				// Switch animation
+				SetAnimator();
+				newAnim = true;
+			}
+			else
 			{
 				// If last animation has passed jump to char change
 				stageCount = 3;
 			}
-			else
-			{
-				// Switch to next animation
-				SetAnimator();
-			}
+		}
 	}
 	
 	// Create and assign controller and animation
@@ -276,9 +281,9 @@ public class CharacterScript : MonoBehaviour {
 		// Add the component if it's not already there
 		if (gameObject.GetComponent<Animator>() == null)
 			gameObject.AddComponent<Animator>();
-		
+			
 		charAnimator = (Animator)gameObject.GetComponent<Animator>();
-		
+
 		// Set speed to 0 so no real animation takes place
 		charAnimator.speed = 0.0f;
 		
@@ -299,7 +304,7 @@ public class CharacterScript : MonoBehaviour {
 		
 		UnityEditorInternal.AnimatorController.SetAnimatorController(charAnimator, aController);
 		
-		// Get normalized time
+		// Set time
 		currTime = charAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime;
 	}
 	

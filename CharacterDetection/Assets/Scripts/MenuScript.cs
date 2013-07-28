@@ -23,7 +23,7 @@ public class MenuScript : MonoBehaviour {
 	string fileLoc = @"C:\Images";
 	bool pxOnOff = false;
 	float aniStep = 0.05f;
-	float aniVar = 25f;
+	float aniVar = 50f;
 	
 	Vector2 scrollPosition = Vector2.zero;
 	#endregion
@@ -74,96 +74,118 @@ public class MenuScript : MonoBehaviour {
 	void MenuWindow(int ID)
 	{
 		GUILayout.BeginArea (new Rect(10, 30, 230, 230));
-		
-		scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, GUILayout.Height(180));
-		
-		// Rotation
-		GUILayout.BeginHorizontal();
-		GUILayout.Label("Rotation Step: " + rotateStep.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
-		rotateStep = GUILayout.HorizontalSlider(rotateStep, 1f, 30f);
-		GUILayout.EndHorizontal();
-		
-		// Tilt
-		GUILayout.BeginHorizontal();
-		GUILayout.Label("Tilt On/Off", GUILayout.Width(120));
-		tiltOnOff = GUILayout.Toggle(tiltOnOff, " Add Tilts");
-		GUILayout.EndHorizontal();
-		
-		if (tiltOnOff)
 		{
+		
+			scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true, GUILayout.Height(180));
+			
+			// Rotation
 			GUILayout.BeginHorizontal();
-			GUILayout.Label("Tilt Step: " + tiltStep.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
-			tiltStep = GUILayout.HorizontalSlider(tiltStep, 1f, 10f);
+			{
+				GUILayout.Label("Rotation Step: " + rotateStep.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
+				rotateStep = GUILayout.HorizontalSlider(rotateStep, 1f, 30f);
+			}
 			GUILayout.EndHorizontal();
 			
+			// Tilt
 			GUILayout.BeginHorizontal();
-			GUILayout.Label("Max Tilt: " + maxTilt.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
-			maxTilt = GUILayout.HorizontalSlider(maxTilt, tiltStep, 30f); 
+			{
+				GUILayout.Label("Tilt On/Off", GUILayout.Width(120));
+				tiltOnOff = GUILayout.Toggle(tiltOnOff, " Add Tilts");
+			}
 			GUILayout.EndHorizontal();
-		}
-		
-		// Save Location
-		GUILayout.BeginHorizontal();
-		GUILayout.Label("Save Location", GUILayout.Width(120));
-		fileLoc = GUILayout.TextField(fileLoc);
-		GUILayout.EndHorizontal();
-		
-		// Show points in green
-		GUILayout.BeginHorizontal();
-		GUILayout.Label("Pixels On/Off", GUILayout.Width(120));
-		pxOnOff = GUILayout.Toggle(pxOnOff, " Add points");
-		GUILayout.EndHorizontal();
-		
-		// Animation
-		GUILayout.BeginHorizontal();
-		GUILayout.Label("Animation: " + aniStep.ToString("f3"), GUILayout.Width(120));
-		aniStep = GUILayout.HorizontalSlider(aniStep, 0.001f, 0.1f);
-		GUILayout.EndHorizontal();
-		
-		// Limit Poses
-		GUILayout.BeginHorizontal();
-		GUILayout.Label("Pose Variation: " + aniVar.ToString("f2"), GUILayout.Width(120));
-		aniVar = GUILayout.HorizontalSlider(aniVar, 0f, 100f);
-		GUILayout.EndHorizontal();
-		
-		// Character/Animation List
-		GUILayout.BeginVertical();
-		GUI.color = Color.yellow;
-		GUILayout.Label(cListStr);
-		GUI.color = Color.white;
-		GUILayout.EndVertical();
-		
-		GUILayout.EndScrollView();
-		
-		// Buttons
-		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Start", GUILayout.Width(80)))
-		{
-			// Close windows
-			MenuActive = false;
 			
-			// Set first character
-			ChangeChar();
+				if (tiltOnOff)
+				{
+					GUILayout.BeginHorizontal();
+					{
+						GUILayout.Label("Tilt Step: " + tiltStep.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
+						tiltStep = GUILayout.HorizontalSlider(tiltStep, 1f, 10f);
+					}
+					GUILayout.EndHorizontal();
+					
+					GUILayout.BeginHorizontal();
+					{
+						GUILayout.Label("Max Tilt: " + maxTilt.ToString("f0").PadLeft(2, '0'), GUILayout.Width(120));
+						maxTilt = GUILayout.HorizontalSlider(maxTilt, tiltStep, 30f);
+					}
+					GUILayout.EndHorizontal();
+				}
 			
-			// Call Start on filecount 0
-			StartChar(0);
-		}
-		
-		if(GUILayout.Button ("Reset", GUILayout.Width(80)))
-		{
-			rotateStep = 15f;
-			tiltOnOff = false;
-			tiltStep = 5f;
-			maxTilt = 10;
-			fileLoc = @"C:\Images";
-			pxOnOff = false;
-			aniStep = 0.05f;
-			aniVar = 25f;
+			// Save Location
+			GUILayout.BeginHorizontal();
+			{
+				GUILayout.Label("Save Location", GUILayout.Width(120));
+				fileLoc = GUILayout.TextField(fileLoc);
+			}
+			GUILayout.EndHorizontal();
 			
-			LoadFromResources();
-		}
-		GUILayout.EndHorizontal();
+			// Show points in green
+			GUILayout.BeginHorizontal();
+			{
+				GUILayout.Label("Pixels On/Off", GUILayout.Width(120));
+				pxOnOff = GUILayout.Toggle(pxOnOff, " Add points");
+			}
+			GUILayout.EndHorizontal();
+			
+			// Animation
+			GUILayout.BeginHorizontal();
+			{
+				GUILayout.Label("Animation: " + aniStep.ToString("f3"), GUILayout.Width(120));
+				aniStep = GUILayout.HorizontalSlider(aniStep, 0.001f, 0.1f);
+			}
+			GUILayout.EndHorizontal();
+			
+			// Limit Poses
+			GUILayout.BeginHorizontal();
+			{
+				GUILayout.Label("Pose Variation: " + aniVar.ToString("f2"), GUILayout.Width(120));
+				aniVar = GUILayout.HorizontalSlider(aniVar, 0f, 300f);
+			}
+			GUILayout.EndHorizontal();
+			
+			// Character/Animation List
+			GUILayout.BeginVertical();
+			{
+				GUI.color = Color.yellow;
+				GUILayout.Label(cListStr);
+				GUI.color = Color.white;
+			}
+			GUILayout.EndVertical();
+			
+			GUILayout.EndScrollView();
+			
+			// Buttons
+			GUILayout.BeginHorizontal();
+			{
+				if (GUILayout.Button("Start", GUILayout.Width(80)))
+				{
+					// Close windows
+					MenuActive = false;
+					
+					// Set first character
+					ChangeChar();
+					
+					// Call Start on filecount 0
+					StartChar(0);
+				}
+				
+				if(GUILayout.Button ("Reset", GUILayout.Width(80)))
+				{
+					rotateStep = 15f;
+					tiltOnOff = false;
+					tiltStep = 5f;
+					maxTilt = 10;
+					fileLoc = @"C:\Images";
+					pxOnOff = false;
+					aniStep = 0.05f;
+					aniVar = 50f;
+					
+					LoadFromResources();
+				}
+			}
+			GUILayout.EndHorizontal();
 		
+		}
 		GUILayout.EndArea();
 	}
 	
