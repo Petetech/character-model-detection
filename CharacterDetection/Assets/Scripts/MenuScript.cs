@@ -22,6 +22,7 @@ public class MenuScript : MonoBehaviour {
 	float maxTilt = 10;
 	string fileLoc = @"C:\Images";
 	bool pxOnOff = false;
+	bool exOnOff = false;
 	float aniStep = 0.05f;
 	float aniVar = 50f;
 	
@@ -122,8 +123,16 @@ public class MenuScript : MonoBehaviour {
 			// Show points in green
 			GUILayout.BeginHorizontal();
 			{
-				GUILayout.Label("Pixels On/Off", GUILayout.Width(120));
-				pxOnOff = GUILayout.Toggle(pxOnOff, " Add points");
+				GUILayout.Label("Green points", GUILayout.Width(120));
+				pxOnOff = GUILayout.Toggle(pxOnOff, " On/Off");
+			}
+			GUILayout.EndHorizontal();
+			
+			// Extrapolation
+			GUILayout.BeginHorizontal();
+			{
+				GUILayout.Label("Extra Points", GUILayout.Width(120));
+				exOnOff = GUILayout.Toggle(exOnOff, " On/Off");
 			}
 			GUILayout.EndHorizontal();
 			
@@ -139,7 +148,7 @@ public class MenuScript : MonoBehaviour {
 			GUILayout.BeginHorizontal();
 			{
 				GUILayout.Label("Pose Variation: " + aniVar.ToString("f2"), GUILayout.Width(120));
-				aniVar = GUILayout.HorizontalSlider(aniVar, 0f, 300f);
+				aniVar = GUILayout.HorizontalSlider(aniVar, 0f, 200f);
 			}
 			GUILayout.EndHorizontal();
 			
@@ -177,6 +186,7 @@ public class MenuScript : MonoBehaviour {
 					maxTilt = 10;
 					fileLoc = @"C:\Images";
 					pxOnOff = false;
+					exOnOff = false;
 					aniStep = 0.05f;
 					aniVar = 50f;
 					
@@ -226,11 +236,11 @@ public class MenuScript : MonoBehaviour {
 		
 		if (tiltOnOff)
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, pxOnOff, aniStep, aniVar, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, pxOnOff, exOnOff, aniStep, aniVar, fC);
 		}
 		else
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, pxOnOff, aniStep, aniVar, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, pxOnOff, exOnOff, aniStep, aniVar, fC);
 		}
 	}
 
