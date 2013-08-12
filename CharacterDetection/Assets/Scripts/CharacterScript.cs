@@ -40,6 +40,7 @@ public class CharacterScript : MonoBehaviour {
 	bool pxFlag;
 	Texture2D brush;
 	int size = 4;
+	int pxNo;
 	
 	// Extra points
 	bool eFlag;
@@ -53,7 +54,7 @@ public class CharacterScript : MonoBehaviour {
 	#region Initialise Overloads
 	
 	// Without Tilt
-	public void Initialise(float y, bool x, string l, bool p, bool e, float a, float v, int c)
+	public void Initialise(float y, bool x, string l, bool p, bool e, float a, float v, int c, int pN)
 	{
 		yStep = y;
 		tiltFlag = x;
@@ -63,6 +64,7 @@ public class CharacterScript : MonoBehaviour {
 		aStep = a;
 		disThreshold = v;
 		fileCount = c;
+		pxNo = pN;
 		
 		if(!Directory.Exists(path))
 			Directory.CreateDirectory(path);
@@ -72,13 +74,14 @@ public class CharacterScript : MonoBehaviour {
 	}
 	
 	// With Tilt
-	public void Initialise(float y, bool x, float xS, float mT, string l, bool p, bool e, float a, float v, int c)
+	public void Initialise(float y, bool x, float xS, float mT, string l, bool p, bool e, float a, float v, int c, int pN)
 	{
 		xStep = xS;
 		maxT = mT;
 
-		Initialise(y, x, l, p, e, a, v, c);
+		Initialise(y, x, l, p, e, a, v, c, pN);
 	}
+	
 	
 	#endregion
 	
@@ -117,13 +120,37 @@ public class CharacterScript : MonoBehaviour {
 	
 	void OnGUI()
 	{
+		float bigX = 0;
+		float bigY = 0;
+		float smallX = 500;
+		float smallY = 500;
 		// Add points to screen
 		if (pxFlag)
 		{
 			foreach (Vector3 v in currentSkeleton.GetParts())
 			{
 				GUI.DrawTexture(new Rect(v.x, (Screen.height - v.y) - 1, 2, 2), brush);	
+				if (v.x > bigX)
+				{
+					bigX = v.x;
+				}
+				else if (v.x < smallX)
+				{
+					smallX = v.x;
+				}
+				if (v.y > bigY)
+				{
+					bigY = v.y;
+				}
+				else if (v.y < smallY)
+				{
+					smallY = v.y;
+				}
 			}
+			GUI.DrawTexture(new Rect((smallX)-15, (Screen.height - bigY)-50,(bigX-smallX)+30,2), brush);
+			GUI.DrawTexture(new Rect((smallX)-15, (Screen.height - smallY)+30,(bigX-smallX)+30,2), brush);
+			GUI.DrawTexture(new Rect((smallX)-15, (Screen.height - bigY)-50,2,(bigY-smallY)+80), brush);
+			GUI.DrawTexture(new Rect((bigX)+15, (Screen.height - bigY)-50,2,(bigY-smallY)+80), brush);
 		}
 	}
 	
@@ -168,7 +195,7 @@ public class CharacterScript : MonoBehaviour {
 			}
 			
 			// Collect the point locations
-    		currentSkeleton.SetParts(charAnimator, eFlag);
+    		currentSkeleton.SetParts(charAnimator, eFlag, pxNo);
 			
 			if (stageCount == 2)
 			{
@@ -400,11 +427,13 @@ public class Skeleton
 {
 	string fileoutput;
 	List<Vector3> coords = new List<Vector3>();
+	int eNumber;
 	
-	public void SetParts(Animator CharAnim, bool eFlag)
+	public void SetParts(Animator CharAnim, bool eFlag, int eNo)
 	{
 		coords.Clear();
 		fileoutput = "";
+		eNumber = eNo;
 		
 		foreach (HumanBodyBones bone in System.Enum.GetValues(typeof(HumanBodyBones)))
 		{
@@ -438,54 +467,47 @@ public class Skeleton
 	void extrapolatePoints(Animator Char)
 	{
 		
-		Vector3 temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position,Char.GetBoneTransform(HumanBodyBones.LeftLowerLeg).position));
-		fileoutput += string.Format("Name: LeftThigh(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position,Char.GetBoneTransform(HumanBodyBones.LeftLowerLeg).position, "LeftThigh");
 
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftLowerLeg).position,Char.GetBoneTransform(HumanBodyBones.LeftFoot).position));
-		fileoutput += string.Format("Name: LeftShin(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
 
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightUpperLeg).position,Char.GetBoneTransform(HumanBodyBones.RightLowerLeg).position));
-		fileoutput += string.Format("Name: RightThigh(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftLowerLeg).position,Char.GetBoneTransform(HumanBodyBones.LeftFoot).position, "LeftShin");
+		
 
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightLowerLeg).position,Char.GetBoneTransform(HumanBodyBones.RightFoot).position));
-		fileoutput += string.Format("Name: RightShin(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightUpperLeg).position,Char.GetBoneTransform(HumanBodyBones.RightLowerLeg).position,"RightThigh");
+		
 
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftShoulder).position,Char.GetBoneTransform(HumanBodyBones.LeftUpperArm).position));
-		fileoutput += string.Format("Name: LeftCollar(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightLowerLeg).position,Char.GetBoneTransform(HumanBodyBones.RightFoot).position, "RightShin");
+		
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftShoulder).position,Char.GetBoneTransform(HumanBodyBones.LeftUpperArm).position, "LeftCollar");
+		
 
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftUpperArm).position,Char.GetBoneTransform(HumanBodyBones.LeftLowerArm).position));
-		fileoutput += string.Format("Name: LeftArmTop(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftUpperArm).position,Char.GetBoneTransform(HumanBodyBones.LeftLowerArm).position,"LeftArmTop");
+		
 
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftLowerArm).position,Char.GetBoneTransform(HumanBodyBones.LeftHand).position));
-		fileoutput += string.Format("Name: LeftArmBottom(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
-
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightShoulder).position,Char.GetBoneTransform(HumanBodyBones.RightUpperArm).position));
-		fileoutput += string.Format("Name: RightCollar(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.LeftLowerArm).position,Char.GetBoneTransform(HumanBodyBones.LeftHand).position,"LeftArmBottom");
+		
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightShoulder).position,Char.GetBoneTransform(HumanBodyBones.RightUpperArm).position, "RightCollar");
+		
 	
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightUpperArm).position,Char.GetBoneTransform(HumanBodyBones.RightLowerArm).position));
-		fileoutput += string.Format("Name: RightArmTop(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
-
-		temp = Camera.main.WorldToScreenPoint(calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightLowerArm).position,Char.GetBoneTransform(HumanBodyBones.RightHand).position));
-		fileoutput += string.Format("Name: RightArmBottom(exp) X: {0}  Y: {1}\r\n",  temp.x, temp.y);
-		coords.Add(temp);
-
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightUpperArm).position,Char.GetBoneTransform(HumanBodyBones.RightLowerArm).position, "RightArmTop");
+		
+		calcExtrapolation(Char.GetBoneTransform(HumanBodyBones.RightLowerArm).position,Char.GetBoneTransform(HumanBodyBones.RightHand).position, "RightArmBottom");
+		
 	}
 	
-	Vector3 calcExtrapolation(Vector3 a, Vector3 b)
+	void calcExtrapolation(Vector3 a, Vector3 b, string Part)
 	{
-		Vector3 c = (a-b) / 2f;
-		c = b+c;
 		
-		return c;
+		Vector3 c = b;
+		for (int ii = 1; ii < eNumber; ii++)
+		{
+			Vector3 plus =(a-b) / (float)eNumber;
+			c = c+plus;
+			Vector3 temp = Camera.main.WorldToScreenPoint(c);
+			fileoutput += string.Format("Name: {0}({3}) X: {1}  Y: {2}\r\n",  Part,  temp.x, temp.y,ii);
+			coords.Add(temp);
+		}
+		
 	}
 }
 

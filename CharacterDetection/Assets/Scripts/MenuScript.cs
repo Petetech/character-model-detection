@@ -25,6 +25,7 @@ public class MenuScript : MonoBehaviour {
 	bool exOnOff = false;
 	float aniStep = 0.05f;
 	float aniVar = 50f;
+	int exPoints = 2;
 	
 	Vector2 scrollPosition = Vector2.zero;
 	#endregion
@@ -136,6 +137,17 @@ public class MenuScript : MonoBehaviour {
 			}
 			GUILayout.EndHorizontal();
 			
+			if (exOnOff)
+			{
+				GUILayout.BeginHorizontal();
+				{
+					GUILayout.Label("Number of Points", GUILayout.Width(120));
+					string temp = GUILayout.TextField(exPoints.ToString());
+					exPoints = System.Convert.ToInt32(temp);
+				}
+				GUILayout.EndHorizontal();
+			}
+			
 			// Animation
 			GUILayout.BeginHorizontal();
 			{
@@ -236,11 +248,11 @@ public class MenuScript : MonoBehaviour {
 		
 		if (tiltOnOff)
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, pxOnOff, exOnOff, aniStep, aniVar, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, tiltStep, maxTilt, fileLoc, pxOnOff, exOnOff, aniStep, aniVar, fC, exPoints);
 		}
 		else
 		{
-			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, pxOnOff, exOnOff, aniStep, aniVar, fC);
+			newScript.Initialise(rotateStep, tiltOnOff, fileLoc, pxOnOff, exOnOff, aniStep, aniVar, fC, exPoints);
 		}
 	}
 
